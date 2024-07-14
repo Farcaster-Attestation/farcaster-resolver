@@ -36,7 +36,7 @@ contract FarcasterWalletVerifierRouter is AccessControl {
         address verifyAdrress,
         uint256 method,
         bytes memory signature
-    ) external view returns (bool) {
+    ) public view returns (bool) {
         if (address(verifiers[method]) == address(0)) return false;
         return
             verifiers[method].verifyAdd(fid, verifyAdrress, method, signature);
@@ -47,7 +47,7 @@ contract FarcasterWalletVerifierRouter is AccessControl {
         address verifyAdrress,
         uint256 method,
         bytes memory signature
-    ) external view returns (bool) {
+    ) public view returns (bool) {
         if (address(verifiers[method]) == address(0)) return false;
         return
             verifiers[method].verifyRemove(

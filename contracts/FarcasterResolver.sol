@@ -1,25 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IEAS, Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import {IFarcasterWalletVerifier} from "./wallet-verifier/IFarcasterWalletVerifier.sol";
+import {FarcasterWalletVerifierRouter} from "./wallet-verifier/FarcasterWalletVerifierRouter.sol";
 
 // (fid, verifyAddress, method, signature)
 
-contract FarcasterResolver is SchemaResolver {
-    IFarcasterWalletVerifier public immutable verifier;
-
+contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
     // Mapping of key is the keccak256 hash of the farcaster id and the verifier address
     // The value is the attestation uid
     mapping(bytes32 => bytes32) public uid;
 
     constructor(
         IEAS eas,
-        IFarcasterWalletVerifier farcasterVerifier
-    ) SchemaResolver(eas) {
-        verifier = farcasterVerifier;
-    }
+        address admin
+    ) SchemaResolver(eas) FarcasterWalletVerifierRouter(admin) {}
 
     /// @dev Attest a farcaster id and add the verifier address to the mapping
     /// @param attestation The attestation to add
@@ -40,7 +38,7 @@ contract FarcasterResolver is SchemaResolver {
 
         uid[key] = attestation.uid;
 
-        return verifier.verifyAdd(fid, verifyAdrress, method, signature);
+        return verifyAdd(fid, verifyAdrress, method, signature);
     }
 
     /// @dev Revoke an attestation for a given farcaster id
@@ -62,7 +60,7 @@ contract FarcasterResolver is SchemaResolver {
 
         delete uid[key];
 
-        return verifier.verifyRemove(fid, verifyAdrress, method, signature);
+        return verifyRemove(fid, verifyAdrress, method, signature);
     }
 
     function computeKey(
