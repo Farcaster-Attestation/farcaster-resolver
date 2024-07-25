@@ -57,7 +57,6 @@ contract FarcasterWalletVerifierRouter is AccessControl {
                 fid,
                 verifyAddress,
                 publicKey,
-                method,
                 signature
             );
     }
@@ -78,7 +77,6 @@ contract FarcasterWalletVerifierRouter is AccessControl {
                 fid,
                 verifyAddress,
                 publicKey,
-                method,
                 signature
             );
     }

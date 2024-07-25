@@ -6,7 +6,6 @@ interface IFarcasterWalletVerifier {
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
-        uint256 method,
         bytes memory signature
     ) external view returns (bool);
 
@@ -14,7 +13,6 @@ interface IFarcasterWalletVerifier {
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
-        uint256 method,
         bytes memory signature
     ) external view returns (bool);
 }

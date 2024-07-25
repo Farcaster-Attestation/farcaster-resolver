@@ -10,6 +10,7 @@ contract FarcasterWalletOptimisticVerifier is
     Ownable
 {
     error InvalidMessageType(MessageType messageType);
+    error ChallengeFailed();
 
     IFarcasterWalletVerifier public immutable onchainVerifier;
     uint256 public challengingPeriod = 1 days;
@@ -55,6 +56,7 @@ contract FarcasterWalletOptimisticVerifier is
         uint256 indexed fid,
         address indexed verifyAddress,
         bytes32 publicKey,
+        bytes32 hash,
         bytes signature
     );
 
@@ -74,6 +76,7 @@ contract FarcasterWalletOptimisticVerifier is
             fid,
             verifyAddress,
             publicKey,
+            h,
             signature
         );
     }
@@ -82,7 +85,6 @@ contract FarcasterWalletOptimisticVerifier is
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
-        uint256,
         bytes memory signature
     ) external view returns (bool) {
         bytes32 h = hash(
@@ -102,7 +104,6 @@ contract FarcasterWalletOptimisticVerifier is
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
-        uint256,
         bytes memory signature
     ) external view returns (bool) {
         bytes32 h = hash(
@@ -116,5 +117,78 @@ contract FarcasterWalletOptimisticVerifier is
         return
             verificationTimestamp[h] > 0 &&
             block.timestamp >= verificationTimestamp[h] + challengingPeriod;
+    }
+
+    event Challenged(
+        MessageType indexed messageType,
+        uint256 indexed fid,
+        address indexed verifyAddress,
+        bytes32 publicKey,
+        bytes32 hash,
+        bytes signature
+    );
+
+    function challengeAdd(
+        uint256 fid,
+        address verifyAddress,
+        bytes32 publicKey,
+        bytes memory signature
+    ) public {
+        bool verified = onchainVerifier.verifyAdd(fid, verifyAddress, publicKey, signature);
+
+        if (verified) {
+            revert ChallengeFailed();
+        }
+
+        bytes32 h = hash(
+            MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
+            fid,
+            verifyAddress,
+            publicKey,
+            signature
+        );
+
+        verificationTimestamp[h] = 0;
+
+        emit Challenged(
+            MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
+            fid,
+            verifyAddress,
+            publicKey,
+            h,
+            signature
+        );
+    }
+
+    function challengeRemove(
+        uint256 fid,
+        address verifyAddress,
+        bytes32 publicKey,
+        bytes memory signature
+    ) public {
+        bool verified = onchainVerifier.verifyRemove(fid, verifyAddress, publicKey, signature);
+
+        if (verified) {
+            revert ChallengeFailed();
+        }
+
+        bytes32 h = hash(
+            MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
+            fid,
+            verifyAddress,
+            publicKey,
+            signature
+        );
+
+        verificationTimestamp[h] = 0;
+
+        emit Challenged(
+            MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
+            fid,
+            verifyAddress,
+            publicKey,
+            h,
+            signature
+        );
     }
 }
