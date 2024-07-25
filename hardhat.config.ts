@@ -24,7 +24,22 @@ const config: HardhatUserConfig = {
       url: process.env.RPC_TESTNET_URL!,
       accounts,
     },
-  }
+  },
+  etherscan: {
+    apiKey: {
+      optimismSepolia: process.env.ETHERSCAN_API_KEY!,
+    },
+    customChains: [
+      {
+        network: "optimismSepolia",
+        chainId: 11155420,
+        urls: {
+            apiURL: "https://api-sepolia-optimism.etherscan.io/api",
+            browserURL: "https://sepolia-optimism.etherscan.io"
+        }
+      },
+    ]
+  },
 };
 
 export default config;
