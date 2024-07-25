@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IFarcasterWalletVerifier} from "./IFarcasterWalletVerifier.sol";
-import {IFarcasterPublicKeyVerifier} from "../public-key-verifier/IFarcasterWalletVerifier.sol";
+import {IFarcasterPublicKeyVerifier} from "../public-key-verifier/IFarcasterPublicKeyVerifier.sol";
 
 contract FarcasterWalletVerifierRouter is AccessControl {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
@@ -28,7 +28,7 @@ contract FarcasterWalletVerifierRouter is AccessControl {
     }
 
     function setPublicKeyVerifier(
-        IFarcasterWalletVerifier verifier
+        IFarcasterPublicKeyVerifier verifier
     ) public onlyRole(OPERATOR_ROLE) {
         publicKeyVerifier = verifier;
         emit SetPublicKeyVerifier(address(verifier));

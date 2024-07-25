@@ -10,7 +10,6 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
-        uint256,
         bytes memory signature
     ) external view returns (bool) {
         (bytes32 signature_r, bytes32 signature_s, bytes memory message) = abi
@@ -44,7 +43,6 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
-        uint256,
         bytes memory signature
     ) external pure returns (bool) {
         (bytes32 signature_r, bytes32 signature_s, bytes memory message) = abi
