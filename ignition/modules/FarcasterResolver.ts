@@ -4,7 +4,7 @@ import { parseEther } from "viem";
 const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
   const admin = m.getAccount(0)
 
-  const eas = m.getParameter("eas", "0x4200000000000000000000000000000000000021");
+  const eas = m.contractAt("EAS", "0x4200000000000000000000000000000000000021");
   const resolver = m.contract("FarcasterResolver", [eas, admin], {});
 
   const keyRegistry = m.getParameter("keyRegistry", "0x00000000fc1237824fb747abde0ff18990e59b7e")
@@ -32,6 +32,10 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
   m.call(resolver, "setPublicKeyVerifier", [publicKeyVerifier])
   m.call(resolver, "setVerifier", [1, walletOnchainVerifier], { id: "setWalletOnchainVerifier" })
   m.call(resolver, "setVerifier", [2, walletOptimisticVerifier], { id: "setWalletOptimisticVerifier" })
+
+  const schemaRegistry = m.contractAt("SchemaRegistry", "0x4200000000000000000000000000000000000020");
+
+  m.call(schemaRegistry, "register", ["uint256 fid,address verifyAdrress,bytes32 publicKey,uint256 verificationMethod,bytes memory signature", resolver, true], { id: "registerSchema" })
 
   return { resolver, publicKeyVerifier, walletOnchainVerifier, walletOptimisticVerifier };
 });

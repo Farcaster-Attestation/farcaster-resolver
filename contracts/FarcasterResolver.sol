@@ -29,7 +29,7 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
             uint256 fid,
             address verifyAdrress,
             bytes32 publicKey,
-            uint256 method,
+            uint256 verificationMethod,
             bytes memory signature
         ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));
         bytes32 key = computeKey(fid, verifyAdrress);
@@ -39,7 +39,7 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
 
         uid[key] = attestation.uid;
 
-        return verifyAdd(fid, verifyAdrress, publicKey, method, signature);
+        return verifyAdd(fid, verifyAdrress, publicKey, verificationMethod, signature);
     }
 
     /// @dev Revoke an attestation for a given farcaster id
@@ -52,7 +52,7 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
             uint256 fid,
             address verifyAdrress,
             bytes32 publicKey,
-            uint256 method,
+            uint256 verificationMethod,
             bytes memory signature
         ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));
         bytes32 key = computeKey(fid, verifyAdrress);
@@ -62,7 +62,7 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
 
         delete uid[key];
 
-        return verifyRemove(fid, verifyAdrress, publicKey, method, signature);
+        return verifyRemove(fid, verifyAdrress, publicKey, verificationMethod, signature);
     }
 
     function computeKey(

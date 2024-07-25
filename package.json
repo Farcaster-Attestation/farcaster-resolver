@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {
-    "@ethereum-attestation-service/eas-contracts": "^1.7.1",
+    "@ethereum-attestation-service/eas-contracts": "1.7.1",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
     "@nomicfoundation/hardhat-ignition-viem": "^0.15.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",

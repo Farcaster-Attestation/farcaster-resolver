@@ -9,7 +9,7 @@ const accounts = [
 ]
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.24",
+  solidity: "0.8.26",
   networks: {
     hardhat: {
       forking: {
@@ -19,7 +19,11 @@ const config: HardhatUserConfig = {
     optimism: {
       url: process.env.RPC_URL!,
       accounts,
-    }
+    },
+    optimism_sepolia: {
+      url: process.env.RPC_TESTNET_URL!,
+      accounts,
+    },
   }
 };
 
