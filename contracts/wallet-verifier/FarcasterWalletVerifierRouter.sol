@@ -17,6 +17,7 @@ contract FarcasterWalletVerifierRouter is AccessControl {
 
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(OPERATOR_ROLE, admin);
     }
 
     function setVerifier(

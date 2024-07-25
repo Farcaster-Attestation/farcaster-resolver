@@ -134,11 +134,11 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public {
-        bool verified = onchainVerifier.verifyAdd(fid, verifyAddress, publicKey, signature);
-
-        if (verified) {
-            revert ChallengeFailed();
-        }
+        try onchainVerifier.verifyAdd(fid, verifyAddress, publicKey, signature) returns (bool verified) {
+            if (verified) {
+                revert ChallengeFailed();
+            }
+        } catch {}
 
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
@@ -166,11 +166,11 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public {
-        bool verified = onchainVerifier.verifyRemove(fid, verifyAddress, publicKey, signature);
-
-        if (verified) {
-            revert ChallengeFailed();
-        }
+        try onchainVerifier.verifyRemove(fid, verifyAddress, publicKey, signature) returns (bool verified) {
+            if (verified) {
+                revert ChallengeFailed();
+            }
+        } catch {}
 
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
