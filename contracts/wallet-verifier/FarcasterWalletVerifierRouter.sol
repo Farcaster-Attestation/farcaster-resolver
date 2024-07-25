@@ -33,18 +33,20 @@ contract FarcasterWalletVerifierRouter is AccessControl {
 
     function verifyAdd(
         uint256 fid,
-        address verifyAdrress,
+        address verifyAddress,
+        bytes32 publicKey,
         uint256 method,
         bytes memory signature
     ) public view returns (bool) {
         if (address(verifiers[method]) == address(0)) return false;
         return
-            verifiers[method].verifyAdd(fid, verifyAdrress, method, signature);
+            verifiers[method].verifyAdd(fid, verifyAddress, publicKey, method, signature);
     }
 
     function verifyRemove(
         uint256 fid,
-        address verifyAdrress,
+        address verifyAddress,
+        bytes32 publicKey,
         uint256 method,
         bytes memory signature
     ) public view returns (bool) {
@@ -52,7 +54,8 @@ contract FarcasterWalletVerifierRouter is AccessControl {
         return
             verifiers[method].verifyRemove(
                 fid,
-                verifyAdrress,
+                verifyAddress,
+                publicKey,
                 method,
                 signature
             );

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-interface IFarcasterWalletVerifier {
+import "./IFarcasterWalletVerifier.sol";
+
+contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
     function verifyAdd(
         uint256 fid,
         address verifyAddress,
