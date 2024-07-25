@@ -10,7 +10,9 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         bytes32 publicKey,
         uint256 method,
         bytes memory signature
-    ) external view returns (bool);
+    ) external view returns (bool) {
+        
+    }
 
     function verifyRemove(
         uint256 fid,
@@ -18,5 +20,7 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         bytes32 publicKey,
         uint256 method,
         bytes memory signature
-    ) external view returns (bool);
+    ) external view returns (bool) {
+        
+    }
 }
