@@ -19,7 +19,7 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@ethereum-attestation-service/eas-contracts@^1.7.1":
+"@ethereum-attestation-service/eas-contracts@1.7.1":
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/@ethereum-attestation-service/eas-contracts/-/eas-contracts-1.7.1.tgz#2dd7784d7d29ca05fff4c9203633dce340bc647a"
   integrity sha512-z2MeCrkp4JrtOMBHQt5fcdbxryC+xxofoPzzv3wcx5GbfG27PpkXRKxlSlb1l2jIT1YfDc701rixbP6vHaEN3Q==
@@ -405,7 +405,7 @@
     ts-proto "1.146.0"
     viem "^2.17.3"
 
-"@farcaster/core@^0.14.17":
+"@farcaster/core@^0.14.17", "@farcaster/core@^0.14.19":
   version "0.14.19"
   resolved "https://registry.yarnpkg.com/@farcaster/core/-/core-0.14.19.tgz#b7a5ca8801097e9e9eccefed8c1f62ab1defce49"
   integrity sha512-ks5Tn9HRDXqM18fFaZM2a70C03gMjR/yXLJHtmYqN9zIk34S45zpQy4PYXi0modNc/JUda2TE/jQ2rm88S9oiQ==

@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@farcaster-attestation/farcaster-solidity": "^2.0.1",
+    "@farcaster/core": "^0.14.19",
     "dotenv": "^16.4.5"
   }
 }

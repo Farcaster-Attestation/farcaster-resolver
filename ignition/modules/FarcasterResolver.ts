@@ -10,8 +10,17 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
   const keyRegistry = m.getParameter("keyRegistry", "0x00000000fc1237824fb747abde0ff18990e59b7e")
   const publicKeyVerifier = m.contract("FarcasterPublicKeyVerifier", [keyRegistry], {});
 
+  const Ed25519_pow = m.library("Ed25519_pow")
+  const Sha512 = m.library("Sha512")
+
   const Blake3 = m.library("Blake3")
-  const Ed25519 = m.library("Ed25519_pow")
+  const Ed25519 = m.library("Ed25519", {
+    libraries: {
+      Ed25519_pow,
+      Sha512,
+    }
+  })
+
   const FcMessageVerification = m.library("FcMessageVerification", {
     libraries: {
       Blake3,
