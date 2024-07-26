@@ -19,6 +19,6 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier {
         if (address(keyRegistry) == address(0)) return true;
 
         IKeyRegistry.KeyData memory data = IKeyRegistry(keyRegistry).keyDataOf(fid, abi.encodePacked(publicKey));
-        return data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 0;
+        return data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1;
     }
 }
