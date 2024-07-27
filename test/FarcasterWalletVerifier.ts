@@ -414,8 +414,6 @@ describe("FarcasterWalletOptimisticVerifier", function () {
       ]
     );
 
-    console.log(encodedData)
-
     await walletOptimisticVerifier.write.submitVerification([
       MessageType.VERIFICATION_ADD_ETH_ADDRESS,
       fid,

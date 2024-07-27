@@ -9,7 +9,15 @@ const accounts = [
 ]
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.26",
+  solidity: {
+    version: "0.8.26",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 100000,
+      },
+    },
+  },
   networks: {
     hardhat: {
       forking: {
@@ -29,6 +37,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       optimismSepolia: process.env.ETHERSCAN_API_KEY!,
+      optimisticEthereum: process.env.ETHERSCAN_API_KEY!,
     },
     customChains: [
       {
