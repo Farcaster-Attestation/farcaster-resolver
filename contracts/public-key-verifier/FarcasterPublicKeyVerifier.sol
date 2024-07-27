@@ -5,12 +5,23 @@ import "./IFarcasterPublicKeyVerifier.sol";
 import "./IKeyRegistry.sol";
 
 contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier {
+    /// @notice The Key Registry contract.
     IKeyRegistry public immutable keyRegistry;
 
+    /**
+     * @dev Constructor to set the Key Registry contract.
+     * @param registry The address of the Key Registry contract.
+     */
     constructor(IKeyRegistry registry) {
         keyRegistry = registry;
     }
 
+    /**
+     * @notice Verifies if the given public key is valid for the specified Farcaster ID (FID).
+     * @param fid The Farcaster ID (FID) of the user.
+     * @param publicKey The public key to be verified.
+     * @return bool indicating whether the public key is valid.
+     */
     function verifyPublicKey(
         uint256 fid,
         bytes32 publicKey

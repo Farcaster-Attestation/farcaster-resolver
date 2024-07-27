@@ -5,7 +5,19 @@ import "./IFarcasterWalletVerifier.sol";
 import "@farcaster-attestation/farcaster-solidity/contracts/farcaster/FcMessageVerification.sol";
 import "@farcaster-attestation/farcaster-solidity/contracts/farcaster/FcMessageDecoder.sol";
 
+/**
+ * @title FarcasterWalletOnchainVerifier
+ * @dev Contract for verifying Farcaster wallet verifications on-chain.
+ */
 contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
+    /**
+     * @notice Verifies a Farcaster wallet verification.
+     * @param fid The Farcaster ID (FID) of the user.
+     * @param verifyAddress The address to be verified.
+     * @param publicKey The public key associated with the signature.
+     * @param signature The signature to be verified, encoded as (r, s, message).
+     * @return bool indicating whether the verification was successful.
+     */
     function verifyAdd(
         uint256 fid,
         address verifyAddress,
@@ -39,6 +51,14 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         return FcMessageVerification.verifyEthAddressClaim(message_data);
     }
 
+    /**
+     * @notice Verifies the removal of a Farcaster wallet verification.
+     * @param fid The Farcaster ID (FID) of the user.
+     * @param verifyAddress The address to be removed.
+     * @param publicKey The public key associated with the signature.
+     * @param signature The signature to be verified, encoded as (r, s, message).
+     * @return bool indicating whether the verification was successful.
+     */
     function verifyRemove(
         uint256 fid,
         address verifyAddress,
