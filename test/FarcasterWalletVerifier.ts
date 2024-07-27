@@ -116,7 +116,7 @@ async function signVerificationAddAddress() {
 }
 
 const SCHEMA =
-  "uint256 fid,address verifyAddress,bytes32 publicKey,uint256 verificationMethod,bytes memory signature";
+  "uint256 fid,bytes32 publicKey,uint256 verificationMethod,bytes memory signature";
 
 function getSchemaId(resolver: `0x${string}`) {
   // Encode packed the schema, resolver, and revocable fields
@@ -238,7 +238,6 @@ describe("FarcasterWalletOnchainVerifier", function () {
       const schemaId = getSchemaId(resolver.address);
       const body = encodeAbiParameters(parseAbiParameters(SCHEMA), [
         fid,
-        toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
         1n,
         encodedData,
@@ -415,6 +414,8 @@ describe("FarcasterWalletOptimisticVerifier", function () {
       ]
     );
 
+    console.log(encodedData)
+
     await walletOptimisticVerifier.write.submitVerification([
       MessageType.VERIFICATION_ADD_ETH_ADDRESS,
       fid,
@@ -438,7 +439,6 @@ describe("FarcasterWalletOptimisticVerifier", function () {
       const schemaId = getSchemaId(resolver.address);
       const body = encodeAbiParameters(parseAbiParameters(SCHEMA), [
         fid,
-        toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
         2n,
         encodedData,

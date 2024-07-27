@@ -26,9 +26,6 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier {
         uint256 fid,
         bytes32 publicKey
     ) external view returns (bool) {
-        // TODO: For testnet only
-        if (address(keyRegistry) == address(0)) return true;
-
         IKeyRegistry.KeyData memory data = IKeyRegistry(keyRegistry).keyDataOf(fid, abi.encodePacked(publicKey));
         return data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1;
     }

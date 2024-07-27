@@ -393,15 +393,16 @@
     "@ethersproject/properties" "^5.7.0"
     "@ethersproject/strings" "^5.7.0"
 
-"@farcaster-attestation/farcaster-solidity@^2.0.1":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@farcaster-attestation/farcaster-solidity/-/farcaster-solidity-2.0.1.tgz#27a94b5961bc5d66c0d2e6fe0439be71c30492e2"
-  integrity sha512-Tdpk6lTBYw6r48DwjmpPoL/OmE6OhqA8sFPuSfnJ3qnynkAhgDCgdkdf/3H1RM41aaUuTpLQ4boQHgYtWcbaYw==
+"@farcaster-attestation/farcaster-solidity@2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@farcaster-attestation/farcaster-solidity/-/farcaster-solidity-2.1.0.tgz#870c43aaaff91236095d2640a66605af2137cb5c"
+  integrity sha512-KOzCftbdEpH+pvPSlMD9eT3a4kDkd4qbwGeV8UGymqxeC7FWKDyttNrMQsyOelnKdTuJjv8IR41EeTkoBp3fvg==
   dependencies:
     "@farcaster/core" "^0.14.17"
     "@lazyledger/protobuf3-solidity-lib" "^0.6.0"
     "@noble/hashes" "^1.3.3"
     "@openzeppelin/contracts" "^5.0.2"
+    dotenv "^16.4.5"
     ts-proto "1.146.0"
     viem "^2.17.3"
 
