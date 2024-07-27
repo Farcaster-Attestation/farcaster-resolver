@@ -46,7 +46,7 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
 
   m.call(schemaRegistry, "register", ["uint256 fid,address verifyAddress,bytes32 publicKey,uint256 verificationMethod,bytes memory signature", resolver, true], { id: "registerSchema" })
 
-  return { resolver, publicKeyVerifier, walletOnchainVerifier, walletOptimisticVerifier };
+  return { resolver, publicKeyVerifier, walletOnchainVerifier, walletOptimisticVerifier, eas };
 });
 
 export default FarcasterResolverModule;
