@@ -27,19 +27,19 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
     ) internal override returns (bool) {
         (
             uint256 fid,
-            address verifyAdrress,
+            address verifyAddress,
             bytes32 publicKey,
             uint256 verificationMethod,
             bytes memory signature
         ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));
-        bytes32 key = computeKey(fid, verifyAdrress);
+        bytes32 key = computeKey(fid, verifyAddress);
         if (uid[key] != bytes32(0)) {
             return false;
         }
 
         uid[key] = attestation.uid;
 
-        return verifyAdd(fid, verifyAdrress, publicKey, verificationMethod, signature);
+        return verifyAdd(fid, verifyAddress, publicKey, verificationMethod, signature);
     }
 
     /// @dev Revoke an attestation for a given farcaster id
@@ -50,19 +50,19 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
     ) internal override returns (bool) {
         (
             uint256 fid,
-            address verifyAdrress,
+            address verifyAddress,
             bytes32 publicKey,
             uint256 verificationMethod,
             bytes memory signature
         ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));
-        bytes32 key = computeKey(fid, verifyAdrress);
+        bytes32 key = computeKey(fid, verifyAddress);
         if (uid[key] != attestation.uid) {
             return false;
         }
 
         delete uid[key];
 
-        return verifyRemove(fid, verifyAdrress, publicKey, verificationMethod, signature);
+        return verifyRemove(fid, verifyAddress, publicKey, verificationMethod, signature);
     }
 
     function computeKey(

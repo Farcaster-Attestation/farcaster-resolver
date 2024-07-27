@@ -24,21 +24,19 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
             )
         ) return false;
 
-        return true;
+        MessageDataVerificationAddAddress
+            memory message_data = FcVerificationDecoder
+                .decodeVerificationAddAddress(message);
 
-        // MessageDataVerificationAddAddress
-        //     memory message_data = FcVerificationDecoder
-        //         .decodeVerificationAddAddress(message);
+        address target = bytesToAddress(
+            message_data.verification_add_address_body.address_
+        );
 
-        // address target = bytesToAddress(
-        //     message_data.verification_add_address_body.address_
-        // );
+        if (target != verifyAddress || message_data.fid != fid) {
+            return false;
+        }
 
-        // if (target != verifyAddress || message_data.fid != fid) {
-        //     return false;
-        // }
-
-        // return FcMessageVerification.verifyEthAddressClaim(message_data);
+        return FcMessageVerification.verifyEthAddressClaim(message_data);
     }
 
     function verifyRemove(

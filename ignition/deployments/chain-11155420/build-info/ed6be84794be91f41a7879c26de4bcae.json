@@ -52,7 +52,7 @@
         "content": "// SPDX-License-Identifier: MIT\n// OpenZeppelin Contracts (last updated v5.0.0) (utils/Strings.sol)\n\npragma solidity ^0.8.20;\n\nimport {Math} from \"./math/Math.sol\";\nimport {SignedMath} from \"./math/SignedMath.sol\";\n\n/**\n * @dev String operations.\n */\nlibrary Strings {\n    bytes16 private constant HEX_DIGITS = \"0123456789abcdef\";\n    uint8 private constant ADDRESS_LENGTH = 20;\n\n    /**\n     * @dev The `value` string doesn't fit in the specified `length`.\n     */\n    error StringsInsufficientHexLength(uint256 value, uint256 length);\n\n    /**\n     * @dev Converts a `uint256` to its ASCII `string` decimal representation.\n     */\n    function toString(uint256 value) internal pure returns (string memory) {\n        unchecked {\n            uint256 length = Math.log10(value) + 1;\n            string memory buffer = new string(length);\n            uint256 ptr;\n            /// @solidity memory-safe-assembly\n            assembly {\n                ptr := add(buffer, add(32, length))\n            }\n            while (true) {\n                ptr--;\n                /// @solidity memory-safe-assembly\n                assembly {\n                    mstore8(ptr, byte(mod(value, 10), HEX_DIGITS))\n                }\n                value /= 10;\n                if (value == 0) break;\n            }\n            return buffer;\n        }\n    }\n\n    /**\n     * @dev Converts a `int256` to its ASCII `string` decimal representation.\n     */\n    function toStringSigned(int256 value) internal pure returns (string memory) {\n        return string.concat(value < 0 ? \"-\" : \"\", toString(SignedMath.abs(value)));\n    }\n\n    /**\n     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.\n     */\n    function toHexString(uint256 value) internal pure returns (string memory) {\n        unchecked {\n            return toHexString(value, Math.log256(value) + 1);\n        }\n    }\n\n    /**\n     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.\n     */\n    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {\n        uint256 localValue = value;\n        bytes memory buffer = new bytes(2 * length + 2);\n        buffer[0] = \"0\";\n        buffer[1] = \"x\";\n        for (uint256 i = 2 * length + 1; i > 1; --i) {\n            buffer[i] = HEX_DIGITS[localValue & 0xf];\n            localValue >>= 4;\n        }\n        if (localValue != 0) {\n            revert StringsInsufficientHexLength(value, length);\n        }\n        return string(buffer);\n    }\n\n    /**\n     * @dev Converts an `address` with fixed length of 20 bytes to its not checksummed ASCII `string` hexadecimal\n     * representation.\n     */\n    function toHexString(address addr) internal pure returns (string memory) {\n        return toHexString(uint256(uint160(addr)), ADDRESS_LENGTH);\n    }\n\n    /**\n     * @dev Returns true if the two strings are equal.\n     */\n    function equal(string memory a, string memory b) internal pure returns (bool) {\n        return bytes(a).length == bytes(b).length && keccak256(bytes(a)) == keccak256(bytes(b));\n    }\n}\n"
       },
       "contracts/FarcasterResolver.sol": {
-        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\nimport \"@openzeppelin/contracts/access/AccessControl.sol\";\nimport {IEAS, Attestation} from \"@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol\";\nimport {SchemaResolver} from \"@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol\";\nimport {IFarcasterWalletVerifier} from \"./wallet-verifier/IFarcasterWalletVerifier.sol\";\nimport {FarcasterWalletVerifierRouter} from \"./wallet-verifier/FarcasterWalletVerifierRouter.sol\";\n\n// (fid, verifyAddress, method, signature)\n\ncontract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {\n    // Mapping of key is the keccak256 hash of the farcaster id and the verifier address\n    // The value is the attestation uid\n    mapping(bytes32 => bytes32) public uid;\n\n    constructor(\n        IEAS eas,\n        address admin\n    ) SchemaResolver(eas) FarcasterWalletVerifierRouter(admin) {}\n\n    /// @dev Attest a farcaster id and add the verifier address to the mapping\n    /// @param attestation The attestation to add\n    function onAttest(\n        Attestation calldata attestation,\n        uint256 /*value*/\n    ) internal override returns (bool) {\n        (\n            uint256 fid,\n            address verifyAdrress,\n            bytes32 publicKey,\n            uint256 verificationMethod,\n            bytes memory signature\n        ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));\n        bytes32 key = computeKey(fid, verifyAdrress);\n        if (uid[key] != bytes32(0)) {\n            return false;\n        }\n\n        uid[key] = attestation.uid;\n\n        return verifyAdd(fid, verifyAdrress, publicKey, verificationMethod, signature);\n    }\n\n    /// @dev Revoke an attestation for a given farcaster id\n    /// @param attestation The attestation to revoke\n    function onRevoke(\n        Attestation calldata attestation,\n        uint256 /*value*/\n    ) internal override returns (bool) {\n        (\n            uint256 fid,\n            address verifyAdrress,\n            bytes32 publicKey,\n            uint256 verificationMethod,\n            bytes memory signature\n        ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));\n        bytes32 key = computeKey(fid, verifyAdrress);\n        if (uid[key] != attestation.uid) {\n            return false;\n        }\n\n        delete uid[key];\n\n        return verifyRemove(fid, verifyAdrress, publicKey, verificationMethod, signature);\n    }\n\n    function computeKey(\n        uint256 _fid,\n        address _verifyAddr\n    ) public pure returns (bytes32) {\n        return keccak256(abi.encodePacked(_fid, _verifyAddr));\n    }\n}\n"
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\nimport \"@openzeppelin/contracts/access/AccessControl.sol\";\nimport {IEAS, Attestation} from \"@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol\";\nimport {SchemaResolver} from \"@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol\";\nimport {IFarcasterWalletVerifier} from \"./wallet-verifier/IFarcasterWalletVerifier.sol\";\nimport {FarcasterWalletVerifierRouter} from \"./wallet-verifier/FarcasterWalletVerifierRouter.sol\";\n\n// (fid, verifyAddress, method, signature)\n\ncontract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {\n    // Mapping of key is the keccak256 hash of the farcaster id and the verifier address\n    // The value is the attestation uid\n    mapping(bytes32 => bytes32) public uid;\n\n    constructor(\n        IEAS eas,\n        address admin\n    ) SchemaResolver(eas) FarcasterWalletVerifierRouter(admin) {}\n\n    /// @dev Attest a farcaster id and add the verifier address to the mapping\n    /// @param attestation The attestation to add\n    function onAttest(\n        Attestation calldata attestation,\n        uint256 /*value*/\n    ) internal override returns (bool) {\n        (\n            uint256 fid,\n            address verifyAddress,\n            bytes32 publicKey,\n            uint256 verificationMethod,\n            bytes memory signature\n        ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));\n        bytes32 key = computeKey(fid, verifyAddress);\n        if (uid[key] != bytes32(0)) {\n            return false;\n        }\n\n        uid[key] = attestation.uid;\n\n        return verifyAdd(fid, verifyAddress, publicKey, verificationMethod, signature);\n    }\n\n    /// @dev Revoke an attestation for a given farcaster id\n    /// @param attestation The attestation to revoke\n    function onRevoke(\n        Attestation calldata attestation,\n        uint256 /*value*/\n    ) internal override returns (bool) {\n        (\n            uint256 fid,\n            address verifyAddress,\n            bytes32 publicKey,\n            uint256 verificationMethod,\n            bytes memory signature\n        ) = abi.decode(attestation.data, (uint256, address, bytes32, uint256, bytes));\n        bytes32 key = computeKey(fid, verifyAddress);\n        if (uid[key] != attestation.uid) {\n            return false;\n        }\n\n        delete uid[key];\n\n        return verifyRemove(fid, verifyAddress, publicKey, verificationMethod, signature);\n    }\n\n    function computeKey(\n        uint256 _fid,\n        address _verifyAddr\n    ) public pure returns (bytes32) {\n        return keccak256(abi.encodePacked(_fid, _verifyAddr));\n    }\n}\n"
       },
       "contracts/public-key-verifier/IFarcasterPublicKeyVerifier.sol": {
         "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.19;\r\n\r\ninterface IFarcasterPublicKeyVerifier {\r\n    function verifyPublicKey(\r\n        uint256 fid,\r\n        bytes32 publicKey\r\n    ) external view returns (bool);\r\n}\r\n"
@@ -35172,7 +35172,7 @@
                             "constant": false,
                             "id": 2798,
                             "mutability": "mutable",
-                            "name": "verifyAdrress",
+                            "name": "verifyAddress",
                             "nameLocation": "1254:13:15",
                             "nodeType": "VariableDeclaration",
                             "scope": 2856,
@@ -35532,7 +35532,7 @@
                             },
                             {
                               "id": 2826,
-                              "name": "verifyAdrress",
+                              "name": "verifyAddress",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
                               "referencedDeclaration": 2798,
@@ -35835,7 +35835,7 @@
                             },
                             {
                               "id": 2850,
-                              "name": "verifyAdrress",
+                              "name": "verifyAddress",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
                               "referencedDeclaration": 2798,
@@ -36118,7 +36118,7 @@
                             "constant": false,
                             "id": 2872,
                             "mutability": "mutable",
-                            "name": "verifyAdrress",
+                            "name": "verifyAddress",
                             "nameLocation": "2023:13:15",
                             "nodeType": "VariableDeclaration",
                             "scope": 2926,
@@ -36478,7 +36478,7 @@
                             },
                             {
                               "id": 2900,
-                              "name": "verifyAdrress",
+                              "name": "verifyAddress",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
                               "referencedDeclaration": 2872,
@@ -36721,7 +36721,7 @@
                             },
                             {
                               "id": 2920,
-                              "name": "verifyAdrress",
+                              "name": "verifyAddress",
                               "nodeType": "Identifier",
                               "overloadedDeclarations": [],
                               "referencedDeclaration": 2872,

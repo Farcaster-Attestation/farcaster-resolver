@@ -149,23 +149,151 @@ describe("FarcasterWalletOnchainVerifier", function () {
 
     expect(result).to.equal(false);
   });
-
-
-  // it("Invalid claim signature", async function () {
-  //   const { publicKeyVerifier } = await loadFixture(deployFixture);
-
-  //   expect(await publicKeyVerifier.read.verifyPublicKey([100000000n, '0xbb77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
-  // });
-
-  // it("Invalid public key", async function () {
-  //   const { publicKeyVerifier } = await loadFixture(deployFixture);
-
-  //   expect(await publicKeyVerifier.read.verifyPublicKey([328679n, '0xab77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
-  // });
-
-  // it("Invalid both", async function () {
-  //   const { publicKeyVerifier } = await loadFixture(deployFixture);
-
-  //   expect(await publicKeyVerifier.read.verifyPublicKey([100000000n, '0xab77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
-  // });
 });
+
+describe("FarcasterWalletOptimisticVerifier", function () {
+  it("Valid signature but not submitted", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationAddAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters('bytes32 r, bytes32 s, bytes message'),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    )
+
+    const result = await walletOptimisticVerifier.read.verifyAdd(
+      [
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    expect(result).to.equal(false);
+  });
+
+  it("Valid signature but not wait 1 day", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationAddAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters('bytes32 r, bytes32 s, bytes message'),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    )
+
+    await walletOptimisticVerifier.write.submitVerification(
+      [
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    const result = await walletOptimisticVerifier.read.verifyAdd(
+      [
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    expect(result).to.equal(false);
+  });
+
+  it("Valid signature and wait 1 day", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationAddAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters('bytes32 r, bytes32 s, bytes message'),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    )
+
+    await walletOptimisticVerifier.write.submitVerification(
+      [
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    await time.increase(86400)
+
+    const result = await walletOptimisticVerifier.read.verifyAdd(
+      [
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    expect(result).to.equal(true);
+  });
+
+  it("Invalid signature challenged", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationAddAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters('bytes32 r, bytes32 s, bytes message'),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(randomBytes(32)),
+        toHexString(messageBytes),
+      ]
+    )
+
+    await walletOptimisticVerifier.write.submitVerification(
+      [
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    await time.increase(16400)
+
+    await walletOptimisticVerifier.write.challengeAdd(
+      [
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    await time.increase(86400)
+
+    const result = await walletOptimisticVerifier.read.verifyAdd(
+      [
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]
+    )
+
+    expect(result).to.equal(false);
+  });
+})
