@@ -1,14 +1,14 @@
 {
   "FarcasterResolverModule#EAS": "0x4200000000000000000000000000000000000021",
   "FarcasterResolverModule#SchemaRegistry": "0x4200000000000000000000000000000000000020",
-  "FarcasterResolverModule#Blake3": "0xA6c02ea36Cfed3E42B82F00E68e88B0BfC24C1Ea",
-  "FarcasterResolverModule#Ed25519_pow": "0xc6a69d0E81B1534179312B443A692FAa17be1b21",
-  "FarcasterResolverModule#FarcasterPublicKeyVerifier": "0x49713cC063Ca6259E9500ea6A7C477e061fF701E",
-  "FarcasterResolverModule#FcVerificationDecoder": "0x9f749485B76D3d81B45747849024d774AA000504",
-  "FarcasterResolverModule#Sha512": "0x7e00C96576C31bFbD2B3f956AF263B768ffC42CC",
-  "FarcasterResolverModule#Ed25519": "0xe004Cf159Cff2FC6f60310b98140Bf7619961526",
-  "FarcasterResolverModule#FarcasterResolver": "0x703df09e14E1DBd5993e62196DB1B482Acef8Bb9",
-  "FarcasterResolverModule#FcMessageVerification": "0x58fE6869129292D5c9a38fFE721BDf8249D82ca7",
-  "FarcasterResolverModule#FarcasterWalletOnchainVerifier": "0x033C0bB85670fe08A530b600714111133b2A2693",
-  "FarcasterResolverModule#FarcasterWalletOptimisticVerifier": "0x3AEe1bC789A75Dd44bac664A1D2Fa6EaBe0C8f1c"
+  "FarcasterResolverModule#Blake3": "0x5d4854ee480f75E87368fE3e6C031B94c37c239f",
+  "FarcasterResolverModule#Ed25519_pow": "0x3975EA17690785e13f8b48B443310DE5103D6065",
+  "FarcasterResolverModule#FarcasterPublicKeyVerifier": "0xA2c298466d3aD0Da17FAf2Dc4323b2Ea63310aaE",
+  "FarcasterResolverModule#FcVerificationDecoder": "0xA668E30bb271b7d8474B3c32Ff24845112E41673",
+  "FarcasterResolverModule#Sha512": "0x8eD8673acbdA3aa5B5b24B84Ad7b254E85AF36D4",
+  "FarcasterResolverModule#Ed25519": "0x3Cf4b74f80e2C9A916b3DdD4c9FADaa762Ca70Ec",
+  "FarcasterResolverModule#FarcasterResolver": "0xba8BfD8306A6a588302A6B931fa53fb6eb8E3292",
+  "FarcasterResolverModule#FcMessageVerification": "0xEA9EAf0723454BA8bb6dacA967d75fAC552B487e",
+  "FarcasterResolverModule#FarcasterWalletOnchainVerifier": "0xfa22641E041828a15CE6d1c29188B3D2d29CE2D5",
+  "FarcasterResolverModule#FarcasterWalletOptimisticVerifier": "0x8D45d7161b7340B297A007Cc7EB6F90350B7BE90"
 }

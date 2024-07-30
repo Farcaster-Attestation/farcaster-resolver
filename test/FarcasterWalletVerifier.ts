@@ -24,6 +24,7 @@ import { fromHexString, toHexString } from "./utils";
 import {
   encodeAbiParameters,
   encodePacked,
+  getAddress,
   keccak256,
   parseAbiParameters,
 } from "viem";
@@ -210,6 +211,8 @@ describe("FarcasterWalletOnchainVerifier", function () {
     const { walletOnchainVerifier, eas, resolver } = await loadFixture(
       deployFixture
     );
+    
+    const publicClient = await hre.viem.getPublicClient();
 
     const message = REAL_VERIFICATION;
     const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
@@ -243,7 +246,22 @@ describe("FarcasterWalletOnchainVerifier", function () {
         encodedData,
       ]);
 
-      await eas.write.attest([
+      // Must not be verified
+      expect(
+        await resolver.read.isVerified([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal(false)
+
+      expect(
+        await resolver.read.getAttestationUid([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
+
+      const hash = await eas.write.attest([
         {
           schema: schemaId,
           data: {
@@ -257,6 +275,43 @@ describe("FarcasterWalletOnchainVerifier", function () {
           },
         },
       ]);
+      
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      const uid = receipt.logs.find(log => log.topics[0] == '0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35')!.data
+
+      // Must be verified
+      expect(
+        await resolver.read.isVerified([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal(true)
+
+      expect(
+        await resolver.read.getAttestationUid([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal(uid)
+
+      // Mapping must be updated
+      expect(
+        await resolver.read.getWalletAttestations([
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.deep.equal([
+        [fid],
+        [uid],
+      ])
+
+      expect(
+        await resolver.read.getFidAttestations([
+          fid,
+        ])
+      ).to.deep.equal([
+        [getAddress(toHexString(message.data.verificationAddAddressBody.address))],
+        [uid],
+      ])
     }
   });
 });
@@ -400,6 +455,8 @@ describe("FarcasterWalletOptimisticVerifier", function () {
       deployFixture
     );
 
+    const publicClient = await hre.viem.getPublicClient();
+
     const message = REAL_VERIFICATION;
     const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
 
@@ -442,7 +499,22 @@ describe("FarcasterWalletOptimisticVerifier", function () {
         encodedData,
       ]);
 
-      await eas.write.attest([
+      // Must not be verified
+      expect(
+        await resolver.read.isVerified([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal(false)
+
+      expect(
+        await resolver.read.getAttestationUid([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
+
+      const hash = await eas.write.attest([
         {
           schema: schemaId,
           data: {
@@ -456,6 +528,43 @@ describe("FarcasterWalletOptimisticVerifier", function () {
           },
         },
       ]);
+      
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      const uid = receipt.logs.find(log => log.topics[0] == '0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35')!.data
+
+      // Must be verified
+      expect(
+        await resolver.read.isVerified([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal(true)
+
+      expect(
+        await resolver.read.getAttestationUid([
+          fid,
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.equal(uid)
+
+      // Mapping must be updated
+      expect(
+        await resolver.read.getWalletAttestations([
+          toHexString(message.data.verificationAddAddressBody.address),
+        ])
+      ).to.deep.equal([
+        [fid],
+        [uid],
+      ])
+
+      expect(
+        await resolver.read.getFidAttestations([
+          fid,
+        ])
+      ).to.deep.equal([
+        [getAddress(toHexString(message.data.verificationAddAddressBody.address))],
+        [uid],
+      ])
     }
   });
 });

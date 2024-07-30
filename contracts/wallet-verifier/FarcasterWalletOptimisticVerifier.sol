@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IFarcasterWalletVerifier.sol";
 import {MessageType} from "@farcaster-attestation/farcaster-solidity/contracts/protobufs/message.proto.sol";
 
@@ -11,10 +11,16 @@ import {MessageType} from "@farcaster-attestation/farcaster-solidity/contracts/p
  */
 contract FarcasterWalletOptimisticVerifier is
     IFarcasterWalletVerifier,
-    Ownable
+    AccessControl
 {
     error InvalidMessageType(MessageType messageType);
     error ChallengeFailed();
+
+    /// @notice Role identifier for relayer role
+    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
+
+    /// @notice Role identifier for security role (Security Council)
+    bytes32 public constant SECURITY_ROLE = keccak256("SECURITY_ROLE");
 
     /// @notice The on-chain verifier contract.
     IFarcasterWalletVerifier public immutable onchainVerifier;
@@ -22,20 +28,30 @@ contract FarcasterWalletOptimisticVerifier is
     /// @notice The challenging period duration.
     uint256 public challengingPeriod = 1 days;
 
+    /// @notice Mapping of verification hash to the timestamp of verification.
+    mapping(bytes32 => uint256) public verificationTimestamp;
+
     /**
      * @dev Constructor to set the on-chain verifier and the relayer address.
      * @param verifier The address of the on-chain verifier contract to use in the challenging process.
-     * @param relayer The address of the relayer.
+     * @param admin The address of the admin.
      */
     constructor(
         IFarcasterWalletVerifier verifier,
-        address relayer
-    ) Ownable(relayer) {
+        address admin
+    ) {
         onchainVerifier = verifier;
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(RELAYER_ROLE, admin);
     }
 
-    /// @notice Mapping of verification hash to the timestamp of verification.
-    mapping(bytes32 => uint256) public verificationTimestamp;
+    /**
+     * Disable a malicious relayer in an emergency by the security council.
+     * @param relayer Relayer to be disabled
+     */
+    function disableRelayer(address relayer) public onlyRole(SECURITY_ROLE) {
+        _revokeRole(RELAYER_ROLE, relayer);
+    }
 
     /**
      * @notice Calculate the verification hash.
@@ -105,7 +121,7 @@ contract FarcasterWalletOptimisticVerifier is
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) public onlyOwner {
+    ) public onlyRole(RELAYER_ROLE) {
         bytes32 h = hash(messageType, fid, verifyAddress, publicKey, signature);
 
         verificationTimestamp[h] = block.timestamp;
