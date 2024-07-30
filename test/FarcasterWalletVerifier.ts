@@ -211,7 +211,7 @@ describe("FarcasterWalletOnchainVerifier", function () {
     const { walletOnchainVerifier, eas, resolver } = await loadFixture(
       deployFixture
     );
-    
+
     const publicClient = await hre.viem.getPublicClient();
 
     const message = REAL_VERIFICATION;
