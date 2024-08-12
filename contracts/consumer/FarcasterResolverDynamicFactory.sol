@@ -15,15 +15,15 @@ contract FarcasterResolverDynamicFactory {
 
     function clone(
         address attestationDecoder
-    ) external payable returns (FarcasterResolverDynamic clone) {
+    ) external payable returns (FarcasterResolverDynamic resolver) {
         bytes memory data = abi.encodePacked(attestationDecoder);
-        clone = FarcasterResolverDynamic(address(implementation).clone2(data, msg.value));
+        resolver = FarcasterResolverDynamic(address(implementation).clone2(data, msg.value));
     }
 
     function cloneAddress(
         address attestationDecoder
-    ) external view returns (address clone) {
+    ) external view returns (address resolver) {
         bytes memory data = abi.encodePacked(attestationDecoder);
-        clone = address(implementation).addressOfClone2(data);
+        resolver = address(implementation).addressOfClone2(data);
     }
 }
