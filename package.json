@@ -27,6 +27,7 @@
   "dependencies": {
     "@farcaster-attestation/farcaster-solidity": "2.1.0",
     "@farcaster/core": "^0.14.19",
+    "clones-with-immutable-args": "wighawag/clones-with-immutable-args",
     "dotenv": "^16.4.5"
   }
 }

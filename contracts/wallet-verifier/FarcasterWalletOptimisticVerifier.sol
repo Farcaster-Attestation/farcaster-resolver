@@ -2,7 +2,8 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./IFarcasterWalletVerifier.sol";
+import {IFarcasterWalletVerifier} from "./IFarcasterWalletVerifier.sol";
+import {IFarcasterPublicKeyVerifier} from "../public-key-verifier/IFarcasterPublicKeyVerifier.sol";
 import {MessageType} from "@farcaster-attestation/farcaster-solidity/contracts/protobufs/message.proto.sol";
 
 /**
@@ -25,6 +26,9 @@ contract FarcasterWalletOptimisticVerifier is
     /// @notice The on-chain verifier contract.
     IFarcasterWalletVerifier public immutable onchainVerifier;
 
+    /// @notice Public key verifier contract
+    IFarcasterPublicKeyVerifier public immutable publicKeyVerifier;
+
     /// @notice The challenging period duration.
     uint256 public challengingPeriod = 1 days;
 
@@ -38,9 +42,12 @@ contract FarcasterWalletOptimisticVerifier is
      */
     constructor(
         IFarcasterWalletVerifier verifier,
+        IFarcasterPublicKeyVerifier pubKeyVerifier,
         address admin
     ) {
         onchainVerifier = verifier;
+        publicKeyVerifier = pubKeyVerifier;
+        
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(RELAYER_ROLE, admin);
     }
@@ -302,5 +309,64 @@ contract FarcasterWalletOptimisticVerifier is
                 signature
             );
         }
+    }
+
+    /**
+     * @notice Try challenging the Farcaster wallet verification submission.
+     * @param fid The Farcaster ID (FID) of the user.
+     * @param verifyAddress The address to be verified.
+     * @param publicKey The public key associated with the signature.
+     * @param signature The signature to be verified.
+     * @return true if the attestation must be challenged, false if valid
+     */
+    function tryChallengeAdd(
+        uint256 fid,
+        address verifyAddress,
+        bytes32 publicKey,
+        bytes memory signature
+    ) public view returns(bool) {
+        try
+            onchainVerifier.verifyAdd(
+                fid,
+                verifyAddress,
+                publicKey,
+                signature
+            )
+        returns (bool verified) {
+            if (verified) {
+                return false;
+            }
+        } catch {}
+
+        return true;
+    }
+
+    /**
+     * @notice Try challenging the removal of a Farcaster wallet verification.
+     * @param fid The Farcaster ID (FID) of the user.
+     * @param verifyAddress The address to be verified.
+     * @param publicKey The public key associated with the signature.
+     * @param signature The signature to be verified.
+     */
+    function tryChallengeRemove(
+        uint256 fid,
+        address verifyAddress,
+        bytes32 publicKey,
+        bytes memory signature
+    ) public view returns(bool) {
+        try
+            onchainVerifier.verifyRemove(
+                fid,
+                verifyAddress,
+                publicKey,
+                signature
+            )
+        returns (bool verified) {
+            if (verified) {
+                return false;
+            }
+        } catch {}
+
+        return true;
     }
 }

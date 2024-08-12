@@ -10,5 +10,8 @@
   "FarcasterResolverModule#FarcasterResolver": "0xba8BfD8306A6a588302A6B931fa53fb6eb8E3292",
   "FarcasterResolverModule#FcMessageVerification": "0xEA9EAf0723454BA8bb6dacA967d75fAC552B487e",
   "FarcasterResolverModule#FarcasterWalletOnchainVerifier": "0xfa22641E041828a15CE6d1c29188B3D2d29CE2D5",
-  "FarcasterResolverModule#FarcasterWalletOptimisticVerifier": "0x8D45d7161b7340B297A007Cc7EB6F90350B7BE90"
+  "FarcasterResolverModule#FarcasterWalletOptimisticVerifier": "0x8D45d7161b7340B297A007Cc7EB6F90350B7BE90",
+  "FarcasterOptimisticVerifierModule#FarcasterResolver": "0xba8BfD8306A6a588302A6B931fa53fb6eb8E3292",
+  "FarcasterOptimisticVerifierModule#FarcasterWalletOnchainVerifier": "0xfa22641E041828a15CE6d1c29188B3D2d29CE2D5",
+  "FarcasterOptimisticVerifierModule#FarcasterWalletOptimisticVerifier": "0x984A31984679Ac53120E5afC0CaB635DD4955960"
 }

@@ -7,10 +7,11 @@ import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contra
 import {IFarcasterWalletVerifier} from "./wallet-verifier/IFarcasterWalletVerifier.sol";
 import {FarcasterWalletVerifierRouter} from "./wallet-verifier/FarcasterWalletVerifierRouter.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "./IFarcasterResolver.sol";
 
 // (fid, verifyAddress, method, signature)
 
-contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
+contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFarcasterResolver {
     using EnumerableMap for EnumerableMap.UintToAddressMap;
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
@@ -30,22 +31,6 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
         IEAS eas,
         address admin
     ) SchemaResolver(eas) FarcasterWalletVerifierRouter(admin) {}
-
-    /**
-     * @dev Emitted when a verification attestation is attested.
-     * @param fid The Farcaster ID
-     * @param verifyAddress The address being verified
-     * @param verificationMethod The method used for verification
-     * @param publicKey The public key associated with the attestation
-     * @param signature The signature of the attestation
-     */
-    event VerificationAttested(
-        uint256 indexed fid,
-        address indexed verifyAddress,
-        uint256 indexed verificationMethod,
-        bytes32 publicKey,
-        bytes signature
-    );
 
     /**
      * @notice Attest a Farcaster ID and add the verified address to the mapping.
@@ -85,22 +70,6 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter {
         return
             verifyAdd(fid, recipient, publicKey, verificationMethod, signature);
     }
-
-    /**
-     * @dev Emitted when a verification attestation is revoked.
-     * @param fid The Farcaster ID
-     * @param verifyAddress The address being verified
-     * @param verificationMethod The method used for verification
-     * @param publicKey The public key associated with the attestation
-     * @param signature The signature of the attestation
-     */
-    event VerificationRevoked(
-        uint256 indexed fid,
-        address indexed verifyAddress,
-        uint256 indexed verificationMethod,
-        bytes32 publicKey,
-        bytes signature
-    );
 
     /**
      * @notice Revoke an attestation for a given Farcaster ID.

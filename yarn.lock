@@ -1594,6 +1594,10 @@ cliui@^7.0.2:
     strip-ansi "^6.0.0"
     wrap-ansi "^7.0.0"
 
+clones-with-immutable-args@wighawag/clones-with-immutable-args:
+  version "1.1.2"
+  resolved "https://codeload.github.com/wighawag/clones-with-immutable-args/tar.gz/196f1ecc6485c1bf2d41677fa01d3df4927ff9ce"
+
 color-convert@^1.9.0:
   version "1.9.3"
   resolved "https://registry.yarnpkg.com/color-convert/-/color-convert-1.9.3.tgz#bb71850690e1f136567de629d2d5471deda4c1e8"
