@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "test": "npx hardhat test",
+    "coverage": "cross-env SOLIDITY_COVERAGE=true npx hardhat coverage"
+  },
   "devDependencies": {
     "@ethereum-attestation-service/eas-contracts": "1.7.1",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
@@ -17,6 +21,7 @@
     "@types/mocha": ">=9.1.0",
     "@types/node": ">=18.0.0",
     "chai": "^4.2.0",
+    "cross-env": "^7.0.3",
     "hardhat": "^2.22.6",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.8.0",

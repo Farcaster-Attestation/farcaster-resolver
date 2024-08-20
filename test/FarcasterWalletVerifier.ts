@@ -319,8 +319,8 @@ describe("FarcasterWalletOnchainVerifier", function () {
 describe("FarcasterWalletOptimisticVerifier", function () {
   it("Valid signature but not submitted", async function () {
     const { walletOptimisticVerifier } = await loadFixture(deployFixture);
-    const { fid, alice, message, messageBytes } =
-      await signVerificationAddAddress();
+    const message = REAL_VERIFICATION;
+    const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
 
     const encodedData = encodeAbiParameters(
       parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -332,8 +332,8 @@ describe("FarcasterWalletOptimisticVerifier", function () {
     );
 
     const result = await walletOptimisticVerifier.read.verifyAdd([
-      fid,
-      alice.address,
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
       toHexString(message.signer),
       encodedData,
     ]);
@@ -343,8 +343,8 @@ describe("FarcasterWalletOptimisticVerifier", function () {
 
   it("Valid signature but not wait 1 day", async function () {
     const { walletOptimisticVerifier } = await loadFixture(deployFixture);
-    const { fid, alice, message, messageBytes } =
-      await signVerificationAddAddress();
+    const message = REAL_VERIFICATION;
+    const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
 
     const encodedData = encodeAbiParameters(
       parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -357,15 +357,15 @@ describe("FarcasterWalletOptimisticVerifier", function () {
 
     await walletOptimisticVerifier.write.submitVerification([
       MessageType.VERIFICATION_ADD_ETH_ADDRESS,
-      fid,
-      alice.address,
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
       toHexString(message.signer),
       encodedData,
     ]);
 
     const result = await walletOptimisticVerifier.read.verifyAdd([
-      fid,
-      alice.address,
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
       toHexString(message.signer),
       encodedData,
     ]);
@@ -375,8 +375,8 @@ describe("FarcasterWalletOptimisticVerifier", function () {
 
   it("Valid signature and wait 1 day", async function () {
     const { walletOptimisticVerifier } = await loadFixture(deployFixture);
-    const { fid, alice, message, messageBytes } =
-      await signVerificationAddAddress();
+    const message = REAL_VERIFICATION;
+    const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
 
     const encodedData = encodeAbiParameters(
       parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -389,6 +389,81 @@ describe("FarcasterWalletOptimisticVerifier", function () {
 
     await walletOptimisticVerifier.write.submitVerification([
       MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    await time.increase(86400);
+
+    const result = await walletOptimisticVerifier.read.verifyAdd([
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(result).to.equal(true);
+  });
+
+  it("Valid signature can't be challenged", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const message = REAL_VERIFICATION;
+    const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    );
+
+    await walletOptimisticVerifier.write.submitVerification([
+      MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(
+      walletOptimisticVerifier.write.challengeAdd([
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationAddAddressBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ])
+    ).to.be.rejectedWith("ChallengeFailed()")
+  });
+
+  it("Invalid signature challenged", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } =
+      await signVerificationAddAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(randomBytes(32)),
+        toHexString(messageBytes),
+      ]
+    );
+
+    await walletOptimisticVerifier.write.submitVerification([
+      MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    await time.increase(16400);
+
+    await walletOptimisticVerifier.write.challengeAdd([
       fid,
       alice.address,
       toHexString(message.signer),
@@ -404,10 +479,10 @@ describe("FarcasterWalletOptimisticVerifier", function () {
       encodedData,
     ]);
 
-    expect(result).to.equal(true);
+    expect(result).to.equal(false);
   });
 
-  it("Invalid signature challenged", async function () {
+  it("Valid signature but invalid public key challenged", async function () {
     const { walletOptimisticVerifier } = await loadFixture(deployFixture);
     const { fid, alice, message, messageBytes } =
       await signVerificationAddAddress();
@@ -416,7 +491,7 @@ describe("FarcasterWalletOptimisticVerifier", function () {
       parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
       [
         toHexString(message.signature.subarray(0, 32)),
-        toHexString(randomBytes(32)),
+        toHexString(message.signature.subarray(32)),
         toHexString(messageBytes),
       ]
     );

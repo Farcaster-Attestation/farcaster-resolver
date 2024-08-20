@@ -238,15 +238,24 @@ contract FarcasterWalletOptimisticVerifier is
 
         if (verificationTimestamp[h] > 0) {
             try
-                onchainVerifier.verifyAdd(
+                publicKeyVerifier.verifyPublicKey(
                     fid,
-                    verifyAddress,
-                    publicKey,
-                    signature
+                    publicKey
                 )
-            returns (bool verified) {
-                if (verified) {
-                    revert ChallengeFailed();
+            returns (bool pubKeyVerified) {
+                if (pubKeyVerified) {
+                    try
+                        onchainVerifier.verifyAdd(
+                            fid,
+                            verifyAddress,
+                            publicKey,
+                            signature
+                        )
+                    returns (bool verified) {
+                        if (verified) {
+                            revert ChallengeFailed();
+                        }
+                    } catch {}
                 }
             } catch {}
 
@@ -286,15 +295,24 @@ contract FarcasterWalletOptimisticVerifier is
 
         if (verificationTimestamp[h] > 0) {
             try
-                onchainVerifier.verifyRemove(
+                publicKeyVerifier.verifyPublicKey(
                     fid,
-                    verifyAddress,
-                    publicKey,
-                    signature
+                    publicKey
                 )
-            returns (bool verified) {
-                if (verified) {
-                    revert ChallengeFailed();
+            returns (bool pubKeyVerified) {
+                if (pubKeyVerified) {
+                    try
+                        onchainVerifier.verifyRemove(
+                            fid,
+                            verifyAddress,
+                            publicKey,
+                            signature
+                        )
+                    returns (bool verified) {
+                        if (verified) {
+                            revert ChallengeFailed();
+                        }
+                    } catch {}
                 }
             } catch {}
 
@@ -326,15 +344,24 @@ contract FarcasterWalletOptimisticVerifier is
         bytes memory signature
     ) public view returns(bool) {
         try
-            onchainVerifier.verifyAdd(
+            publicKeyVerifier.verifyPublicKey(
                 fid,
-                verifyAddress,
-                publicKey,
-                signature
+                publicKey
             )
-        returns (bool verified) {
-            if (verified) {
-                return false;
+        returns (bool pubKeyVerified) {
+            if (pubKeyVerified) {
+                try
+                    onchainVerifier.verifyAdd(
+                        fid,
+                        verifyAddress,
+                        publicKey,
+                        signature
+                    )
+                returns (bool verified) {
+                    if (verified) {
+                        return false;
+                    }
+                } catch {}
             }
         } catch {}
 
@@ -355,15 +382,24 @@ contract FarcasterWalletOptimisticVerifier is
         bytes memory signature
     ) public view returns(bool) {
         try
-            onchainVerifier.verifyRemove(
+            publicKeyVerifier.verifyPublicKey(
                 fid,
-                verifyAddress,
-                publicKey,
-                signature
+                publicKey
             )
-        returns (bool verified) {
-            if (verified) {
-                return false;
+        returns (bool pubKeyVerified) {
+            if (pubKeyVerified) {
+                try
+                    onchainVerifier.verifyRemove(
+                        fid,
+                        verifyAddress,
+                        publicKey,
+                        signature
+                    )
+                returns (bool verified) {
+                    if (verified) {
+                        return false;
+                    }
+                } catch {}
             }
         } catch {}
 

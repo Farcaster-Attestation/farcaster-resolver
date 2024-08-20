@@ -36,7 +36,7 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
     }
   })
 
-  const walletOptimisticVerifier = m.contract("FarcasterWalletOptimisticVerifier", [walletOnchainVerifier, admin], {})
+  const walletOptimisticVerifier = m.contract("FarcasterWalletOptimisticVerifier", [walletOnchainVerifier, publicKeyVerifier, admin], {})
 
   m.call(resolver, "setPublicKeyVerifier", [publicKeyVerifier])
   m.call(resolver, "setVerifier", [1, walletOnchainVerifier], { id: "setWalletOnchainVerifier" })
