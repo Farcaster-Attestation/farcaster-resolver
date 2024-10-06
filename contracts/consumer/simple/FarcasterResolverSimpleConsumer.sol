@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "./FarcasterResolverConsumer.sol";
+import "../FarcasterResolverConsumer.sol";
 
 contract FarcasterResolverSimpleConsumer is FarcasterResolverConsumer {
-    constructor(IEAS eas, IFarcasterResolver _resolver) FarcasterResolverConsumer(eas, _resolver) {}
+    constructor(IEAS eas, IFarcasterVerification _resolver) FarcasterResolverConsumer(eas, _resolver) {}
 
     function decodeFarcasterAttestation(
         Attestation calldata attestation,

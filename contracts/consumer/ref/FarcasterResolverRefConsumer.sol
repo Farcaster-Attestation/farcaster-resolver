@@ -2,16 +2,23 @@
 pragma solidity ^0.8.19;
 
 import "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
-import "./FarcasterResolverConsumer.sol";
+import "../FarcasterResolverConsumer.sol";
 
-contract FarcasterResolverRefConsumer is FarcasterResolverConsumer {
+abstract contract FarcasterResolverRefConsumer is FarcasterResolverConsumer {
     error RefNotFound(bytes32 uid);
     error NotImplementedDecoder(bytes32 uid);
+    error AttestationRevoked(bytes32 uid);
 
     constructor(
         IEAS eas,
-        IFarcasterResolver _resolver
+        IFarcasterVerification _resolver
     ) FarcasterResolverConsumer(eas, _resolver) {}
+
+    function decodeRef(
+        Attestation memory attestation,
+        uint256 value,
+        bool isRevoke
+    ) public virtual returns (bytes32 refUID);
 
     function _decodeFarcasterAttestation(
         Attestation memory attestation,
@@ -21,6 +28,8 @@ contract FarcasterResolverRefConsumer is FarcasterResolverConsumer {
         SchemaRecord memory schema = _eas.getSchemaRegistry().getSchema(
             attestation.schema
         );
+
+        if (attestation.revocationTime > 0) revert AttestationRevoked(attestation.uid);
 
         if (
             address(schema.resolver) == address(0) ||
@@ -32,7 +41,11 @@ contract FarcasterResolverRefConsumer is FarcasterResolverConsumer {
                 revert NotImplementedDecoder(attestation.uid);
             } else {
                 Attestation memory ref = _eas.getAttestation(
-                    attestation.refUID
+                    decodeRef(
+                        attestation,
+                        value,
+                        isRevoke
+                    )
                 );
                 return _decodeFarcasterAttestation(ref, value, isRevoke);
             }

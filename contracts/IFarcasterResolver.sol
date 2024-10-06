@@ -2,12 +2,13 @@
 pragma solidity ^0.8.19;
 
 import {IEAS, Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
+import {IFarcasterVerification} from "./IFarcasterVerification.sol";
 
 /**
  * @title IFarcasterResolver
  * @notice Interface for Farcaster Resolver contract.
  */
-interface IFarcasterResolver {
+interface IFarcasterResolver is IFarcasterVerification {
 
     /**
      * @dev Emitted when a verification attestation is attested.
@@ -60,14 +61,6 @@ interface IFarcasterResolver {
      * @return The attestation UID.
      */
     function getAttestationUid(uint256 fid, address wallet) external view returns (bytes32);
-
-    /**
-     * @notice Check if a wallet is verified for a given Farcaster ID.
-     * @param fid The Farcaster ID.
-     * @param wallet The wallet address.
-     * @return bool indicating if the wallet is verified.
-     */
-    function isVerified(uint256 fid, address wallet) external view returns (bool);
 
     /**
      * @notice Get the number of attestations and verified FIDs for a given wallet address.
