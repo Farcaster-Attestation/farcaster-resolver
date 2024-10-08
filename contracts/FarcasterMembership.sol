@@ -3,8 +3,10 @@ pragma solidity ^0.8.19;
 
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
-import {IEAS, Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
-import {IFarcasterVerification} from "./IFarcasterVerification.sol";
+import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IFarcasterResolverAttestationDecoder} from "./consumer/IFarcasterResolverAttestationDecoder.sol";
+import "./IFarcasterMembership.sol";
 
 // Permissions
 uint256 constant FARCASTER_MEMBERSHIP_CAN_ATTEST = 1 << 0;
@@ -14,15 +16,12 @@ uint256 constant FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER = 1 << 3;
 uint256 constant FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN = 1 << 4;
 uint256 constant FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN = 1 << 5;
 
-contract FarcasterMembership is SchemaResolver {
+contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
     error PermissionDenied();
-
-    struct Membership {
-        uint256 farcasterId;
-        uint256 permissions;
-    }
+    error MissingFarcasterResolverConsumer(bytes32 uid);
+    error AttestationRevoked(bytes32 uid);
 
     IFarcasterVerification public immutable verifier;
     bytes32 public schemaId;
@@ -81,8 +80,28 @@ contract FarcasterMembership is SchemaResolver {
         }
     }
 
-    function initMember(bytes32 attUid) internal {
+    function initMember(bytes32 attUid, bool isRevoke) internal {
+        Attestation memory a = _eas.getAttestation(attUid);
+        SchemaRecord memory schema = _eas.getSchemaRegistry().getSchema(
+            a.schema
+        );
 
+        if (a.revocationTime > 0) revert AttestationRevoked(a.uid);
+
+        if (members[attUid].length() == 0) {
+            if (
+                address(schema.resolver) == address(0) ||
+                !IERC165(address(schema.resolver)).supportsInterface(
+                    type(IFarcasterResolverAttestationDecoder).interfaceId
+                )
+            ) {
+                revert MissingFarcasterResolverConsumer(attUid);
+            }
+
+            (uint256 fid, ) = IFarcasterResolverAttestationDecoder(address(schema.resolver)).decodeFarcasterAttestation(a, 0, isRevoke);
+            members[attUid].set(fid, 63);
+            emit SetMember(attUid, 0, fid, 63);
+        }
     }
 
     function setMember(
@@ -91,6 +110,8 @@ contract FarcasterMembership is SchemaResolver {
         uint256 memberFid,
         uint256 permissions
     ) public {
+        initMember(attUid, false);
+
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,
             adminFid
@@ -120,6 +141,7 @@ contract FarcasterMembership is SchemaResolver {
         }
 
         members[attUid].set(memberFid, permissions);
+        emit SetMember(attUid, adminFid, memberFid, permissions);
     }
 
     function removeMember(
@@ -127,6 +149,8 @@ contract FarcasterMembership is SchemaResolver {
         uint256 adminFid,
         uint256 memberFid
     ) public {
+        initMember(attUid, true);
+
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,
             adminFid
@@ -171,6 +195,7 @@ contract FarcasterMembership is SchemaResolver {
         }
 
         members[attUid].remove(memberFid);
+        emit RemoveMember(attUid, adminFid, memberFid);
     }
 
     function onAttest(
