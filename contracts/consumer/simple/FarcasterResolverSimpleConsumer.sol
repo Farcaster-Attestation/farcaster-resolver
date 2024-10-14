@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "../FarcasterResolverConsumer.sol";
+import "../standard/FarcasterResolverStandardConsumer.sol";
 
 contract FarcasterResolverSimpleConsumer is FarcasterResolverConsumer {
     constructor(IEAS eas, IFarcasterVerification _resolver) FarcasterResolverConsumer(eas, _resolver) {}

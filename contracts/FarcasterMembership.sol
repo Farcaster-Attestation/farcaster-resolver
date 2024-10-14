@@ -2,26 +2,20 @@
 pragma solidity ^0.8.19;
 
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IFarcasterResolverAttestationDecoder} from "./consumer/IFarcasterResolverAttestationDecoder.sol";
 import "./IFarcasterMembership.sol";
 
-// Permissions
-uint256 constant FARCASTER_MEMBERSHIP_CAN_ATTEST = 1 << 0;
-uint256 constant FARCASTER_MEMBERSHIP_CAN_LEAVE = 1 << 1;
-uint256 constant FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER = 1 << 2;
-uint256 constant FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER = 1 << 3;
-uint256 constant FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN = 1 << 4;
-uint256 constant FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN = 1 << 5;
-
-contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
+contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall {
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
     error PermissionDenied();
     error MissingFarcasterResolverConsumer(bytes32 uid);
     error AttestationRevoked(bytes32 uid);
+    error NoPrimaryFid(bytes32 uid);
 
     IFarcasterVerification public immutable verifier;
     bytes32 public schemaId;
@@ -46,8 +40,8 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
     function hasPermission(
         uint256 permissions,
         uint256 flag
-    ) internal pure returns (bool) {
-        return (permissions & flag) > 0;
+    ) internal virtual pure returns (bool) {
+        return (permissions & flag) == flag;
     }
 
     function getMember(
@@ -80,7 +74,7 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
         }
     }
 
-    function initMember(bytes32 attUid, bool isRevoke) internal {
+    function initMember(bytes32 attUid) internal virtual {
         Attestation memory a = _eas.getAttestation(attUid);
         SchemaRecord memory schema = _eas.getSchemaRegistry().getSchema(
             a.schema
@@ -98,10 +92,40 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
                 revert MissingFarcasterResolverConsumer(attUid);
             }
 
-            (uint256 fid, ) = IFarcasterResolverAttestationDecoder(address(schema.resolver)).decodeFarcasterAttestation(a, 0, isRevoke);
-            members[attUid].set(fid, 63);
-            emit SetMember(attUid, 0, fid, 63);
+            uint256 fid;
+            uint256 permissions = 0; // 63 = 0b111111 can do everything
+
+            // Fetch the primary member who can attest
+            try IFarcasterResolverAttestationDecoder(address(schema.resolver)).decodeFarcasterAttestation(a, 0, false) returns (uint256 attesterFid, address wallet) {
+                if (attesterFid > 0) {
+                    fid = attesterFid;
+                    permissions = FARCASTER_MEMBERSHIP_CAN_ATTEST | FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER | FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN;
+                }
+            } catch {}
+            
+            // Fetch the primary member who can revoke
+            try IFarcasterResolverAttestationDecoder(address(schema.resolver)).decodeFarcasterAttestation(a, 0, true) returns (uint256 revokerFid, address wallet) {
+                if (revokerFid > 0 && (fid == revokerFid || fid == 0)) {
+                    fid = revokerFid;
+                    permissions = permissions | FARCASTER_MEMBERSHIP_CAN_REVOKE | FARCASTER_MEMBERSHIP_CAN_LEAVE | FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER | FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN;
+                }
+            } catch {}
+
+            if (fid == 0) {
+                revert NoPrimaryFid(a.uid);
+            }
+            
+            members[attUid].set(fid, permissions);
+            emit SetMember(attUid, 0, fid, permissions);
         }
+    }
+
+    function verifyMember(bytes32 attUid, uint256 fid, uint256 permissions) public virtual returns(bool) {
+        initMember(attUid);
+
+        if (!members[attUid].contains(fid)) return false;
+
+        return hasPermission(members[attUid].get(fid), permissions);
     }
 
     function setMember(
@@ -109,8 +133,8 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
         uint256 adminFid,
         uint256 memberFid,
         uint256 permissions
-    ) public {
-        initMember(attUid, false);
+    ) public virtual {
+        initMember(attUid);
 
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,
@@ -149,7 +173,7 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver {
         uint256 adminFid,
         uint256 memberFid
     ) public {
-        initMember(attUid, true);
+        initMember(attUid);
 
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,

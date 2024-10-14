@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
+import "../../IFarcasterMembership.sol";
 import "../FarcasterResolverConsumer.sol";
 import "../IAttestationResolverRefDecoder.sol";
 
@@ -9,6 +10,7 @@ contract FarcasterResolverStandardConsumer is
     FarcasterResolverConsumer,
     IAttestationResolverRefDecoder
 {
+    IFarcasterMembership public immutable membership;
     bool immutable useRecipient;
     bool immutable useRefFid;
     bool immutable useRefCheck;
@@ -24,6 +26,7 @@ contract FarcasterResolverStandardConsumer is
     constructor(
         IEAS _eas,
         IFarcasterVerification _resolver,
+        IFarcasterMembership _membership,
         bool _useRecipient,
         bool _useRefFid,
         bool _useRefCheck,
@@ -31,6 +34,7 @@ contract FarcasterResolverStandardConsumer is
         uint256 _fidOffset,
         uint256 _refOffset
     ) FarcasterResolverConsumer(_eas, _resolver) {
+        membership = _membership;
         useRecipient = _useRecipient;
         useRefFid = _useRefFid;
         useRefCheck = _useRefCheck;
@@ -43,7 +47,7 @@ contract FarcasterResolverStandardConsumer is
         Attestation calldata attestation,
         uint256 /*value*/,
         bool /*isRevoke*/
-    ) public returns (bytes32 uid) {
+    ) public virtual returns (bytes32 uid) {
         if (useRefBody) {
             bytes calldata data = attestation.data;
             uint256 _refOffset = refOffset;
@@ -147,15 +151,16 @@ contract FarcasterResolverStandardConsumer is
         );
 
         // Check for permisison in reference attestation
-        if (useRefCheck) {
+        if (valid && useRefCheck) {
             if (decodeRefUid(attestation, value, isRevoke) == bytes32(0)) {
                 revert RefNotFound(attestation.uid);
             }
 
             (
                 Attestation memory ref,
-                SchemaRecord memory schema
             ) = decodeRecursiveRefUid(attestation, value, isRevoke);
+
+            valid = membership.verifyMember(ref.uid, fid, isRevoke ? FARCASTER_MEMBERSHIP_CAN_REVOKE : FARCASTER_MEMBERSHIP_CAN_ATTEST);
         }
     }
 
