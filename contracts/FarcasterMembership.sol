@@ -3,7 +3,8 @@ pragma solidity ^0.8.19;
 
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
-import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
+import {SchemaResolver, ISchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
+import {AttestationRequest, AttestationRequestData, RevocationRequest, RevocationRequestData} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IFarcasterResolverAttestationDecoder} from "./consumer/IFarcasterResolverAttestationDecoder.sol";
@@ -20,12 +21,19 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
     IFarcasterVerification public immutable verifier;
     bytes32 public schemaId;
     mapping(bytes32 => EnumerableMap.UintToUintMap) members;
+    mapping(bytes32 => mapping(uint256 => bytes32)) public attestations;
 
     constructor(
         IEAS eas,
         IFarcasterVerification _verifier
     ) SchemaResolver(eas) {
         verifier = _verifier;
+
+        schemaId = eas.getSchemaRegistry().register(
+            "uint256 adminFid,uint256 memberFid,uint256 permissions",
+            ISchemaResolver(address(this)),
+            true
+        );
     }
 
     function decodePackedMembership(
@@ -128,13 +136,31 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
         return hasPermission(members[attUid].get(fid), permissions);
     }
 
+    function _revokeAttestation(bytes32 attUid, uint256 fid) internal {
+        if (attestations[attUid][fid] != bytes32(0)) {
+            _eas.revoke(RevocationRequest({
+                schema: schemaId,
+                data: RevocationRequestData({
+                    uid: attestations[attUid][fid],
+                    value: 0
+                })
+            }));
+            attestations[attUid][fid] = bytes32(0);
+        }
+    }
+
     function setMember(
         bytes32 attUid,
         uint256 adminFid,
         uint256 memberFid,
         uint256 permissions
     ) public virtual {
+        if (!verifier.isVerified(adminFid, msg.sender)) {
+            revert PermissionDenied();
+        }
+
         initMember(attUid);
+        _revokeAttestation(attUid, memberFid);
 
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,
@@ -165,6 +191,20 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
         }
 
         members[attUid].set(memberFid, permissions);
+
+        bytes32 uid = _eas.attest(AttestationRequest({
+            schema: schemaId,
+            data: AttestationRequestData({
+                recipient: msg.sender,
+                expirationTime: 0,
+                revocable: true,
+                refUID: attUid,
+                data: abi.encode(adminFid, memberFid, permissions),
+                value: 0
+            })
+        }));
+        attestations[attUid][memberFid] = uid;
+
         emit SetMember(attUid, adminFid, memberFid, permissions);
     }
 
@@ -173,7 +213,12 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
         uint256 adminFid,
         uint256 memberFid
     ) public {
+        if (!verifier.isVerified(adminFid, msg.sender)) {
+            revert PermissionDenied();
+        }
+
         initMember(attUid);
+        _revokeAttestation(attUid, memberFid);
 
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,
@@ -226,13 +271,13 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
         Attestation calldata attestation,
         uint256
     ) internal virtual override returns (bool) {
-        return attestation.attester == address(this);
+        return attestation.attester == address(this) && attestation.schema == schemaId;
     }
 
     function onRevoke(
         Attestation calldata attestation,
         uint256
     ) internal virtual override returns (bool) {
-        return attestation.attester == address(this);
+        return attestation.attester == address(this) && attestation.schema == schemaId;
     }
 }

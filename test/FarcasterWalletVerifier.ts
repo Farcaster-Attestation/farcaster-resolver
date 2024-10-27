@@ -27,6 +27,7 @@ import {
   getAddress,
   keccak256,
   parseAbiParameters,
+  PrivateKeyAccount,
 } from "viem";
 
 const REAL_VERIFICATION: VerificationAddAddressMessage = {
@@ -113,6 +114,34 @@ async function signVerificationAddAddress() {
     alice,
     message,
     messageBytes,
+    ed25519Signer,
+  };
+}
+
+async function signVerificationRemoveAddress(
+  fid: number | bigint = 1,
+  alice: PrivateKeyAccount = privateKeyToAccount(
+    `0x${Buffer.from(randomBytes(32)).toString("hex")}`
+  ),
+  ed25519Signer: NobleEd25519Signer = new NobleEd25519Signer(randomBytes(32))
+) {
+  const messageResult = await makeVerificationRemove({
+    address: fromHexString(alice.address),
+    protocol: Protocol.ETHEREUM,
+  }, { fid: Number(fid), network: FarcasterNetwork.MAINNET }, ed25519Signer)
+
+  expect(messageResult.isOk()).to.be.true;
+
+  const message = messageResult._unsafeUnwrap();
+
+  const messageBytes = MessageData.encode(message.data).finish();
+
+  return {
+    fid: BigInt(fid),
+    alice,
+    message,
+    messageBytes,
+    ed25519Signer,
   };
 }
 
@@ -157,28 +186,160 @@ describe("FarcasterWalletOnchainVerifier", function () {
     expect(result).to.equal(true);
   });
 
-  it("Invalid signature", async function () {
+  it("Valid remove signature", async function () {
     const { walletOnchainVerifier } = await loadFixture(deployFixture);
-    const { fid, alice, message, messageBytes } =
-      await signVerificationAddAddress();
+    const { fid, alice, message, messageBytes } = 
+      await signVerificationRemoveAddress();
 
     const encodedData = encodeAbiParameters(
       parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
       [
         toHexString(message.signature.subarray(0, 32)),
-        toHexString(randomBytes(32)),
+        toHexString(message.signature.subarray(32)), 
         toHexString(messageBytes),
       ]
     );
 
-    const result = await walletOnchainVerifier.read.verifyAdd([
+    const result = await walletOnchainVerifier.read.verifyRemove([
       fid,
       alice.address,
       toHexString(message.signer),
       encodedData,
     ]);
 
-    expect(result).to.equal(false);
+    expect(result).to.equal(true);
+  });
+
+  it("Invalid signature", async function () {
+    const { walletOnchainVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } =
+      await signVerificationAddAddress();
+
+    {
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(randomBytes(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      const result = await walletOnchainVerifier.read.verifyAdd([
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+  
+      expect(result).to.equal(false);
+    }
+
+    {
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      const result = await walletOnchainVerifier.read.verifyAdd([
+        fid + 1n,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+  
+      expect(result).to.equal(false);
+    }
+
+    {
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      const result = await walletOnchainVerifier.read.verifyAdd([
+        fid,
+        "0x0000000000000000000000000000000000000000",
+        toHexString(message.signer),
+        encodedData,
+      ]);
+  
+      expect(result).to.equal(false);
+    }
+  });
+
+  it("Invalid remove signature", async function () {
+    const { walletOnchainVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } =
+      await signVerificationRemoveAddress();
+
+    {
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(randomBytes(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      const result = await walletOnchainVerifier.read.verifyRemove([
+        fid, 
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      expect(result).to.equal(false);
+    }
+
+    {
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      const result = await walletOnchainVerifier.read.verifyRemove([
+        fid + 1n, 
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      expect(result).to.equal(false);
+    }
+
+    {
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      const result = await walletOnchainVerifier.read.verifyRemove([
+        fid, 
+        "0x0000000000000000000000000000000000000000",
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      expect(result).to.equal(false);
+    }
   });
 
   it("Invalid claim signature", async function () {
@@ -238,14 +399,6 @@ describe("FarcasterWalletOnchainVerifier", function () {
     expect(result).to.equal(true);
 
     {
-      const schemaId = getSchemaId(resolver.address);
-      const body = encodeAbiParameters(parseAbiParameters(SCHEMA), [
-        fid,
-        toHexString(message.signer),
-        1n,
-        encodedData,
-      ]);
-
       // Must not be verified
       expect(
         await resolver.read.isVerified([
@@ -261,19 +414,12 @@ describe("FarcasterWalletOnchainVerifier", function () {
         ])
       ).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
 
-      const hash = await eas.write.attest([
-        {
-          schema: schemaId,
-          data: {
-            recipient: toHexString(message.data.verificationAddAddressBody.address),
-            data: body,
-            expirationTime: 0n,
-            revocable: true,
-            refUID:
-              "0x0000000000000000000000000000000000000000000000000000000000000000",
-            value: 0n,
-          },
-        },
+      const hash = await resolver.write.attest([
+        toHexString(message.data.verificationAddAddressBody.address),
+        fid,
+        toHexString(message.signer),
+        1n,
+        encodedData,
       ]);
       
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
@@ -437,6 +583,15 @@ describe("FarcasterWalletOptimisticVerifier", function () {
         encodedData,
       ])
     ).to.be.rejectedWith("ChallengeFailed()")
+
+    const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
+      BigInt(message.data.fid),
+      toHexString(message.data.verificationAddAddressBody.address),
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(challenged).to.equal(false);
   });
 
   it("Invalid signature challenged", async function () {
@@ -462,6 +617,15 @@ describe("FarcasterWalletOptimisticVerifier", function () {
     ]);
 
     await time.increase(16400);
+
+    const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
+      fid,
+      alice.address, 
+      toHexString(message.signer),
+      encodedData
+    ]);
+
+    expect(challenged).to.equal(true);
 
     await walletOptimisticVerifier.write.challengeAdd([
       fid,
@@ -506,6 +670,15 @@ describe("FarcasterWalletOptimisticVerifier", function () {
 
     await time.increase(16400);
 
+    const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
+      fid,
+      alice.address, 
+      toHexString(message.signer),
+      encodedData
+    ]);
+
+    expect(challenged).to.equal(true);
+
     await walletOptimisticVerifier.write.challengeAdd([
       fid,
       alice.address,
@@ -516,6 +689,135 @@ describe("FarcasterWalletOptimisticVerifier", function () {
     await time.increase(86400);
 
     const result = await walletOptimisticVerifier.read.verifyAdd([
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(result).to.equal(false);
+  });
+
+  it("Valid remove signature but not submitted", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    );
+
+    const result = await walletOptimisticVerifier.read.verifyRemove([
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(result).to.equal(false);
+  });
+
+  it("Valid remove signature but not wait 1 day", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    );
+
+    await walletOptimisticVerifier.write.submitVerification([
+      MessageType.VERIFICATION_REMOVE,
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    const result = await walletOptimisticVerifier.read.verifyRemove([
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(result).to.equal(false);
+  });
+
+  it("Valid remove signature and wait 1 day", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    );
+
+    await walletOptimisticVerifier.write.submitVerification([
+      MessageType.VERIFICATION_REMOVE,
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    await time.increase(86400);
+
+    const result = await walletOptimisticVerifier.read.verifyRemove([
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    expect(result).to.equal(true);
+  });
+
+  it("Valid remove signature but invalid public key challenged", async function () {
+    const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+    const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+      [
+        toHexString(message.signature.subarray(0, 32)),
+        toHexString(message.signature.subarray(32)),
+        toHexString(messageBytes),
+      ]
+    );
+
+    await walletOptimisticVerifier.write.submitVerification([
+      MessageType.VERIFICATION_REMOVE,
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    await time.increase(16400);
+
+    await walletOptimisticVerifier.write.challengeRemove([
+      fid,
+      alice.address,
+      toHexString(message.signer),
+      encodedData,
+    ]);
+
+    await time.increase(86400);
+
+    const result = await walletOptimisticVerifier.read.verifyRemove([
       fid,
       alice.address,
       toHexString(message.signer),
@@ -566,14 +868,6 @@ describe("FarcasterWalletOptimisticVerifier", function () {
     expect(result).to.equal(true);
 
     {
-      const schemaId = getSchemaId(resolver.address);
-      const body = encodeAbiParameters(parseAbiParameters(SCHEMA), [
-        fid,
-        toHexString(message.signer),
-        2n,
-        encodedData,
-      ]);
-
       // Must not be verified
       expect(
         await resolver.read.isVerified([
@@ -589,19 +883,12 @@ describe("FarcasterWalletOptimisticVerifier", function () {
         ])
       ).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000')
 
-      const hash = await eas.write.attest([
-        {
-          schema: schemaId,
-          data: {
-            recipient: toHexString(message.data.verificationAddAddressBody.address),
-            data: body,
-            expirationTime: 0n,
-            revocable: true,
-            refUID:
-              "0x0000000000000000000000000000000000000000000000000000000000000000",
-            value: 0n,
-          },
-        },
+      const hash = await resolver.write.attest([
+        toHexString(message.data.verificationAddAddressBody.address),
+        fid,
+        toHexString(message.signer),
+        2n,
+        encodedData,
       ]);
       
       const receipt = await publicClient.waitForTransactionReceipt({ hash })

@@ -42,9 +42,9 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
   m.call(resolver, "setVerifier", [1, walletOnchainVerifier], { id: "setWalletOnchainVerifier" })
   m.call(resolver, "setVerifier", [2, walletOptimisticVerifier], { id: "setWalletOptimisticVerifier" })
 
-  const schemaRegistry = m.contractAt("SchemaRegistry", "0x4200000000000000000000000000000000000020");
+  // const schemaRegistry = m.contractAt("SchemaRegistry", "0x4200000000000000000000000000000000000020");
 
-  m.call(schemaRegistry, "register", ["uint256 fid,bytes32 publicKey,uint256 verificationMethod,bytes memory signature", resolver, true], { id: "registerSchema" })
+  // m.call(schemaRegistry, "register", ["uint256 fid,bytes32 publicKey,uint256 verificationMethod,bytes memory signature", resolver, true], { id: "registerSchema" })
 
   return { resolver, publicKeyVerifier, walletOnchainVerifier, walletOptimisticVerifier, eas };
 });

@@ -2,8 +2,9 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import {IEAS, Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
-import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {IEAS, Attestation, AttestationRequest, AttestationRequestData, RevocationRequest, RevocationRequestData} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
+import {SchemaResolver, ISchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import {IFarcasterWalletVerifier} from "./wallet-verifier/IFarcasterWalletVerifier.sol";
 import {FarcasterWalletVerifierRouter} from "./wallet-verifier/FarcasterWalletVerifierRouter.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
@@ -11,9 +12,17 @@ import "./IFarcasterResolver.sol";
 
 // (fid, verifyAddress, method, signature)
 
-contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFarcasterResolver {
+contract FarcasterResolver is
+    SchemaResolver,
+    FarcasterWalletVerifierRouter,
+    IFarcasterResolver,
+    Multicall
+{
     using EnumerableMap for EnumerableMap.UintToAddressMap;
     using EnumerableMap for EnumerableMap.UintToUintMap;
+
+    /// @notice The schema ID for the Farcaster resolver
+    bytes32 public schemaId;
 
     // Mapping of key is the keccak256 hash of the farcaster id and the verifier address
     // The value is the attestation uid
@@ -30,7 +39,99 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
     constructor(
         IEAS eas,
         address admin
-    ) SchemaResolver(eas) FarcasterWalletVerifierRouter(admin) {}
+    ) SchemaResolver(eas) FarcasterWalletVerifierRouter(admin) {
+        schemaId = eas.getSchemaRegistry().register(
+            "uint256 fid,bytes32 publicKey,uint256 verificationMethod,bytes memory signature",
+            ISchemaResolver(address(this)),
+            true
+        );
+    }
+
+    /**
+     * @notice Attest a Farcaster ID and add the verified address to the mapping.
+     * @param recipient The recipient of the attestation
+     * @param fid The Farcaster ID
+     * @param publicKey The public key
+     * @param verificationMethod The verification method
+     * @param signature The signature
+     */
+    function attest(
+        address recipient,
+        uint256 fid,
+        bytes32 publicKey,
+        uint256 verificationMethod,
+        bytes memory signature
+    ) public returns (bytes32) {
+        return
+            _eas.attest(
+                AttestationRequest({
+                    schema: schemaId,
+                    data: AttestationRequestData({
+                        recipient: recipient,
+                        expirationTime: 0,
+                        revocable: true,
+                        refUID: bytes32(0),
+                        data: abi.encode(
+                            fid,
+                            publicKey,
+                            verificationMethod,
+                            signature
+                        ),
+                        value: 0
+                    })
+                })
+            );
+    }
+
+    function revoke(
+        address recipient,
+        uint256 fid,
+        bytes32 publicKey,
+        uint256 verificationMethod,
+        bytes memory signature
+    ) public returns (bool) {
+        bytes32 key = computeKey(fid, recipient);
+
+        if (uid[key] == bytes32(0)) {
+            return false;
+        }
+
+        bytes32 attUid = uid[key];
+
+        walletAttestations[recipient].remove(uint256(attUid));
+        fidAttestations[fid].remove(uint256(attUid));
+
+        if (
+            verifyRemove(
+                fid,
+                recipient,
+                publicKey,
+                verificationMethod,
+                signature
+            )
+        ) {
+            _eas.revoke(
+                RevocationRequest({
+                    schema: schemaId,
+                    data: RevocationRequestData({uid: attUid, value: 0})
+                })
+            );
+
+            delete uid[key];
+
+            emit VerificationRevoked(
+                fid,
+                recipient,
+                verificationMethod,
+                publicKey,
+                signature
+            );
+
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * @notice Attest a Farcaster ID and add the verified address to the mapping.
@@ -42,6 +143,13 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
         Attestation calldata attestation,
         uint256 /*value*/
     ) internal override returns (bool) {
+        if (
+            attestation.attester != address(this) ||
+            attestation.schema != schemaId
+        ) {
+            return false;
+        }
+
         address recipient = attestation.recipient;
 
         (
@@ -80,41 +188,15 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
     function onRevoke(
         Attestation calldata attestation,
         uint256 /*value*/
-    ) internal override returns (bool) {
-        address recipient = attestation.recipient;
-
-        (
-            uint256 fid,
-            bytes32 publicKey,
-            uint256 verificationMethod,
-            bytes memory signature
-        ) = abi.decode(attestation.data, (uint256, bytes32, uint256, bytes));
-        bytes32 key = computeKey(fid, recipient);
-        if (uid[key] != attestation.uid) {
+    ) internal override view returns (bool) {
+        if (
+            attestation.attester != address(this) ||
+            attestation.schema != schemaId
+        ) {
             return false;
         }
 
-        delete uid[key];
-
-        walletAttestations[recipient].remove(uint256(attestation.uid));
-        fidAttestations[fid].remove(uint256(attestation.uid));
-
-        emit VerificationRevoked(
-            fid,
-            recipient,
-            verificationMethod,
-            publicKey,
-            signature
-        );
-
-        return
-            verifyRemove(
-                fid,
-                recipient,
-                publicKey,
-                verificationMethod,
-                signature
-            );
+        return true;
     }
 
     /**
@@ -137,7 +219,10 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
      * @param wallet The wallet address.
      * @return The attestation UID.
      */
-    function getAttestationUid(uint256 fid, address wallet) public view returns(bytes32) {
+    function getAttestationUid(
+        uint256 fid,
+        address wallet
+    ) public view returns (bytes32) {
         bytes32 key = computeKey(fid, wallet);
         return uid[key];
     }
@@ -148,7 +233,10 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
      * @param wallet The wallet address.
      * @return bool indicating if the wallet is verified.
      */
-    function isVerified(uint256 fid, address wallet) public view returns(bool) {
+    function isVerified(
+        uint256 fid,
+        address wallet
+    ) public view returns (bool) {
         return getAttestationUid(fid, wallet) != bytes32(0);
     }
 
@@ -179,7 +267,7 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
         fids = new uint256[](len);
         uids = new bytes32[](len);
 
-        for (uint256 i; i < len;) {
+        for (uint256 i; i < len; ) {
             (uint256 u, uint256 f) = walletAttestations[wallet].at(start + i);
 
             fids[i] = f;
@@ -200,7 +288,8 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
     function getWalletAttestations(
         address wallet
     ) public view returns (uint256[] memory fids, bytes32[] memory uids) {
-        return getWalletAttestations(wallet, 0, walletAttestationsLength(wallet));
+        return
+            getWalletAttestations(wallet, 0, walletAttestationsLength(wallet));
     }
 
     /**
@@ -228,7 +317,7 @@ contract FarcasterResolver is SchemaResolver, FarcasterWalletVerifierRouter, IFa
         wallets = new address[](len);
         uids = new bytes32[](len);
 
-        for (uint256 i; i < len;) {
+        for (uint256 i; i < len; ) {
             (uint256 u, address w) = fidAttestations[fid].at(start + i);
 
             wallets[i] = w;
