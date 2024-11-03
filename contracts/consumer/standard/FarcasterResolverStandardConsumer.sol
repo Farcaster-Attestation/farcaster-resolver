@@ -81,17 +81,6 @@ contract FarcasterResolverStandardConsumer is
                 revert MissingFarcasterResolverConsumer(attestation.uid);
             } else {
                 bytes32 refUid = attestation.refUID;
-
-                if (
-                    IERC165(address(schema.resolver)).supportsInterface(
-                        type(IAttestationResolverRefDecoder).interfaceId
-                    )
-                ) {
-                    refUid = IAttestationResolverRefDecoder(
-                        address(schema.resolver)
-                    ).decodeRefUid(attestation, value, isRevoke);
-                }
-
                 Attestation memory ref = _eas.getAttestation(refUid);
                 return decodeRecursiveRefUid(ref, value, isRevoke);
             }
@@ -116,10 +105,12 @@ contract FarcasterResolverStandardConsumer is
                 revert RefNotFound(attestation.uid);
             }
 
+            Attestation memory firstRef = _eas.getAttestation(decodeRefUid(attestation, value, isRevoke));
+
             (
                 Attestation memory ref,
                 SchemaRecord memory schema
-            ) = decodeRecursiveRefUid(attestation, value, isRevoke);
+            ) = decodeRecursiveRefUid(firstRef, value, isRevoke);
 
             (fid, ) = IFarcasterResolverAttestationDecoder(
                 address(schema.resolver)
@@ -156,9 +147,11 @@ contract FarcasterResolverStandardConsumer is
                 revert RefNotFound(attestation.uid);
             }
 
+            Attestation memory firstRef = _eas.getAttestation(decodeRefUid(attestation, value, isRevoke));
+
             (
                 Attestation memory ref,
-            ) = decodeRecursiveRefUid(attestation, value, isRevoke);
+            ) = decodeRecursiveRefUid(firstRef, value, isRevoke);
 
             valid = membership.verifyMember(ref.uid, fid, isRevoke ? FARCASTER_MEMBERSHIP_CAN_REVOKE : FARCASTER_MEMBERSHIP_CAN_ATTEST);
         }
