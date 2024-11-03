@@ -189,6 +189,13 @@ export async function deployResolverWithAttestations() {
   };
 }
 
+export async function getAttestationUid(hash: `0x${string}`) {
+  const publicClient = await hre.viem.getPublicClient();
+  const receipt = await publicClient.waitForTransactionReceipt({ hash })
+  const uid = receipt.logs.find(log => log.topics[0] == '0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35')!.data
+  return uid;
+}
+
 export const fromHexString = (hexString: `0x${string}`) =>
   Uint8Array.from(
     hexString
