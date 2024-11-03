@@ -8,7 +8,7 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
   const resolver = m.contract("FarcasterResolver", [eas, admin], {});
 
   const keyRegistry = m.getParameter("keyRegistry", "0x00000000fc1237824fb747abde0ff18990e59b7e")
-  const publicKeyVerifier = m.contract("FarcasterPublicKeyVerifier", [keyRegistry], {});
+  const publicKeyVerifier = m.contract("FarcasterPublicKeyVerifier", [keyRegistry, admin], {});
 
   const Ed25519_pow = m.library("Ed25519_pow")
   const Sha512 = m.library("Sha512")
@@ -42,11 +42,11 @@ const FarcasterResolverModule = buildModule("FarcasterResolverModule", (m) => {
   m.call(resolver, "setVerifier", [1, walletOnchainVerifier], { id: "setWalletOnchainVerifier" })
   m.call(resolver, "setVerifier", [2, walletOptimisticVerifier], { id: "setWalletOptimisticVerifier" })
 
-  // const schemaRegistry = m.contractAt("SchemaRegistry", "0x4200000000000000000000000000000000000020");
+  const schemaRegistry = m.contractAt("SchemaRegistry", "0x4200000000000000000000000000000000000020");
 
   // m.call(schemaRegistry, "register", ["uint256 fid,bytes32 publicKey,uint256 verificationMethod,bytes memory signature", resolver, true], { id: "registerSchema" })
 
-  return { resolver, publicKeyVerifier, walletOnchainVerifier, walletOptimisticVerifier, eas };
+  return { resolver, publicKeyVerifier, walletOnchainVerifier, walletOptimisticVerifier, eas, schemaRegistry };
 });
 
 export default FarcasterResolverModule;

@@ -7,7 +7,7 @@ const FarcasterResolverSimpleConsumerModule = buildModule("FarcasterResolverSimp
   
   const simpleConsumer = m.contract("FarcasterResolverSimpleConsumer", [eas, resolver], {});
 
-  return { simpleConsumer };
+  return { simpleConsumer, resolver };
 });
 
 export default FarcasterResolverSimpleConsumerModule;
