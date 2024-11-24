@@ -129,7 +129,7 @@ export async function signVerificationRemoveAddress(
 export async function deployResolverWithAttestations() {
   const result = await ignition.deploy(TestSuiteModule);
 
-  const fids = [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n];
+  const fids = [1n, 2n, 3n, 4n];
   const alices: PrivateKeyAccount[] = [];
   const ed25519Signers: NobleEd25519Signer[] = [];
   const messages: VerificationAddAddressMessage[] = [];
@@ -172,10 +172,10 @@ export async function deployResolverWithAttestations() {
   }
 
   const [deployer] = await hre.viem.getWalletClients();
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 4; i++) {
     await deployer.sendTransaction({
       to: alices[i].address,
-      value: 1000000000000000n // 0.01 ETH
+      value: 10000000000000000n // 0.1 ETH
     });
   }
 
