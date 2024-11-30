@@ -19,9 +19,6 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
     /// @notice The external Key Registry mapping.
     mapping(uint256 => mapping(bytes32 => bool)) public keyExternal;
 
-    /// @notice Blacklisted operators.
-    mapping(address => bool) public blacklist;
-
     /// @notice Event emitted when a key is added.
     event AddKey(uint256 indexed fid, bytes32 indexed publicKey);
 
@@ -37,6 +34,8 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
      */
     constructor(IKeyRegistry registry, address admin) {
         keyRegistry = registry;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(OPERATOR_ROLE, admin);
     }
 
@@ -60,13 +59,12 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
      * @param publicKey The public key to be added.
      */
     function addKey(uint256 fid, bytes32 publicKey) external onlyRole(OPERATOR_ROLE) {
-        if (blacklist[msg.sender]) revert BlacklistedOperator();
         keyExternal[fid][publicKey] = true;
         emit AddKey(fid, publicKey);
     }
 
     function blacklistOperator(address operator) external onlyRole(SECURITY_ROLE) {
-        blacklist[operator] = true;
+        _revokeRole(OPERATOR_ROLE, operator);
         emit BlacklistOperator(operator);
     }
 }

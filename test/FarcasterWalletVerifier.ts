@@ -87,8 +87,8 @@ describe("FarcasterWalletVerifier", function () {
   let ethWallet: PrivateKeyAccount
   let addMessage: VerificationAddAddressMessage
   let addMessageBytes: Uint8Array
-  let removeMessage: VerificationRemoveMessage
   let removeMessageBytes: Uint8Array
+  let removeMessage: VerificationRemoveMessage
   let fid: bigint;
   let ed25519Signer: NobleEd25519Signer;
 
@@ -710,7 +710,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(
+      await expect(
         walletOptimisticVerifier.write.challengeAdd([
           BigInt(message.data.fid),
           toHexString(message.data.verificationAddAddressBody.address),
@@ -730,9 +730,11 @@ describe("FarcasterWalletVerifier", function () {
     });
 
     it("Invalid signature challenged", async function () {
-      const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
       const { fid, alice, message, messageBytes } =
         await signVerificationAddAddress();
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
 
       const encodedData = encodeAbiParameters(
         parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -942,7 +944,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
   
-      expect(
+      await expect(
         walletOptimisticVerifier.write.challengeRemove([
           BigInt(message.data.fid),
           toHexString(message.data.verificationRemoveBody.address),
@@ -959,6 +961,45 @@ describe("FarcasterWalletVerifier", function () {
       ]);
   
       expect(challenged).to.equal(false);
+    });
+
+    it("Invalid remove signature challenged", async function () {
+      const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
+  
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(randomBytes(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      await walletOptimisticVerifier.write.submitVerification([
+        MessageType.VERIFICATION_REMOVE,
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationRemoveBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ]);
+  
+      await walletOptimisticVerifier.write.challengeRemove([
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationRemoveBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ])
+  
+      const challenged = await walletOptimisticVerifier.read.tryChallengeRemove([
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationRemoveBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ]);
+  
+      expect(challenged).to.equal(true);
     });
 
     it("Valid remove signature but invalid public key challenged", async function () {
@@ -1302,6 +1343,395 @@ describe("FarcasterWalletVerifier", function () {
         ])
       }
     });
+
+    it("Challenge add before submit", async () => {
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
+      const { fid, alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(randomBytes(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
+        fid,
+        alice.address, 
+        toHexString(message.signer),
+        encodedData
+      ]);
+
+      expect(challenged).to.equal(true);
+
+      await walletOptimisticVerifier.write.challengeAdd([
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      // Nothing happened...
+
+      await walletOptimisticVerifier.write.submitVerification([
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+    })
+
+    it("Challenge remove before submit", async () => {
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(randomBytes(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      const challenged = await walletOptimisticVerifier.read.tryChallengeRemove([
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationRemoveBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      expect(challenged).to.equal(true);
+
+      await walletOptimisticVerifier.write.challengeRemove([
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationRemoveBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      // Nothing happened...
+    })
+
+    it("Banned Relayer", async () => {
+      const [ wallet1, wallet2 ] = await hre.viem.getWalletClients()
+  
+      // Add security role for self
+      const { walletOptimisticVerifier } = await loadFixture(
+        deployFixture
+      );
+  
+      const SECURITY_ROLE = keccak256(Buffer.from("SECURITY_ROLE"));
+      const RELAYER_ROLE = keccak256(Buffer.from("RELAYER_ROLE"));
+  
+      await walletOptimisticVerifier.write.grantRole([ RELAYER_ROLE, wallet2.account.address ])
+
+      {
+        const message = REAL_VERIFICATION;
+        const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
+  
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(message.signature.subarray(32)),
+            toHexString(messageBytes),
+          ]
+        );
+  
+        await walletOptimisticVerifier.write.submitVerification([
+          MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+          BigInt(message.data.fid),
+          toHexString(message.data.verificationAddAddressBody.address),
+          toHexString(message.signer),
+          encodedData,
+        ]);
+      }
+
+      {
+        const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(message.signature.subarray(32)),
+            toHexString(messageBytes),
+          ]
+        );
+  
+        await walletOptimisticVerifier.write.submitVerification([
+          MessageType.VERIFICATION_REMOVE,
+          fid,
+          alice.address,
+          toHexString(message.signer),
+          encodedData,
+        ], { account: wallet2.account });
+      }
+  
+      await expect(walletOptimisticVerifier.write.disableRelayer([ wallet2.account.address ])).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet1.account.address)}", "${SECURITY_ROLE}")`);
+      
+      await walletOptimisticVerifier.write.grantRole([ SECURITY_ROLE, wallet1.account.address ])
+  
+      await walletOptimisticVerifier.write.disableRelayer([ wallet2.account.address ])
+
+      {
+        const message = REAL_VERIFICATION;
+        const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
+  
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(message.signature.subarray(32)),
+            toHexString(messageBytes),
+          ]
+        );
+  
+        await expect(walletOptimisticVerifier.write.submitVerification([
+            MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+            BigInt(message.data.fid),
+            toHexString(message.data.verificationAddAddressBody.address),
+            toHexString(message.signer),
+            encodedData,
+          ], { account: wallet2.account })
+        ).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${RELAYER_ROLE}")`);
+      }
+
+      {
+        const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(message.signature.subarray(32)),
+            toHexString(messageBytes),
+          ]
+        );
+  
+        await expect(
+          walletOptimisticVerifier.write.submitVerification([
+            MessageType.VERIFICATION_REMOVE,
+            fid,
+            alice.address,
+            toHexString(message.signer),
+            encodedData,
+          ], { account: wallet2.account })
+        ).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${RELAYER_ROLE}")`);
+      }
+    })
+
+    it("Invalid message type", async () => {
+      const { walletOptimisticVerifier } = await loadFixture(
+        deployFixture
+      );
+
+      const message = REAL_VERIFICATION;
+      const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
+
+      const fid = BigInt(message.data.fid);
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      await expect(walletOptimisticVerifier.read.hash([
+        9,
+        fid,
+        toHexString(message.data.verificationAddAddressBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ])).to.be.rejected
+    })
   });
+
+  describe("Router invalid cases", () => {
+    it("Undefined method for verifying add", async () => {
+      const { resolver, publicKeyVerifier } = await loadFixture(deployFixture);
+      const { fid, alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      expect(
+        await resolver.read.verifyAdd(
+          [
+            fid,
+            alice.address,
+            toHexString(message.signer),
+            9999n,
+            encodedData,
+          ]
+        )
+      ).to.equal(false)
+    })
+
+    it("Invalid public key for verifying add", async () => {
+      const { resolver } = await loadFixture(deployFixture);
+      const { fid, alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      expect(
+        await resolver.read.verifyAdd(
+          [
+            fid,
+            alice.address,
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ]
+        )
+      ).to.equal(false)
+    })
+
+    it("Undefined method for verifying remove", async () => {
+      const { resolver, publicKeyVerifier } = await loadFixture(deployFixture);
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      expect(
+        await resolver.read.verifyRemove(
+          [
+            BigInt(message.data.fid),
+            toHexString(message.data.verificationRemoveBody.address),
+            toHexString(message.signer),
+            9999n,
+            encodedData,
+          ]
+        )
+      ).to.equal(false)
+    })
+
+    it("Invalid public key for verifying remove", async () => {
+      const { resolver } = await loadFixture(deployFixture);
+      const { message, messageBytes } = await signVerificationRemoveAddress();
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      expect(
+        await resolver.read.verifyRemove(
+          [
+            BigInt(message.data.fid),
+            toHexString(message.data.verificationRemoveBody.address),
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ]
+        )
+      ).to.equal(false)
+    })
+
+    it("No permission to add verifier", async () => {
+      const [ _, wallet2 ] = await hre.viem.getWalletClients()
+      const { resolver } = await loadFixture(deployFixture);
+
+      const OPERATOR_ROLE = keccak256(Buffer.from("OPERATOR_ROLE"));
+
+      await expect(resolver.write.setVerifier([3n, resolver.address], { account: wallet2.account })).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${OPERATOR_ROLE}")`)
+      await expect(resolver.write.setPublicKeyVerifier([resolver.address], { account: wallet2.account })).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${OPERATOR_ROLE}")`)
+    })
+
+    it("Blacklist verifier", async () => {
+      const [ wallet1 ] = await hre.viem.getWalletClients()
+      const { resolver, publicKeyVerifier } = await loadFixture(deployFixture);
+
+      const SECURITY_ROLE = keccak256(Buffer.from("SECURITY_ROLE"));
+
+      const { fid, alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      expect(
+        await resolver.read.verifyAdd(
+          [
+            fid,
+            alice.address,
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ]
+        )
+      ).to.equal(true)
+      
+      await expect(resolver.write.emergencyRemoveVerifier([1n])).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet1.account.address)}", "${SECURITY_ROLE}")`)
+    
+      await resolver.write.grantRole([ SECURITY_ROLE, wallet1.account.address ])
+
+      await resolver.write.emergencyRemoveVerifier([1n])
+
+      expect(
+        await resolver.read.verifyAdd(
+          [
+            fid,
+            alice.address,
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ]
+        )
+      ).to.equal(false)
+    })
+  })
 
 })

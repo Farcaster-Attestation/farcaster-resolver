@@ -18,6 +18,9 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  mocha: {
+    timeout: 400000
+  },
   networks: {
     hardhat: {
       forking: {
