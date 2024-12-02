@@ -151,7 +151,7 @@ describe("SimpleConsumer", function () {
       2n,
     ]);
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -183,7 +183,7 @@ describe("SimpleConsumer", function () {
       1n,
     ]);
 
-    expect(
+    await expect(
       eas.write.attest([
         {
           schema: schemaId,
@@ -203,6 +203,29 @@ describe("SimpleConsumer", function () {
 });
 
 describe("StandardConsumer", function () {
+  it("Support decoder interfaces", async function () {
+    const { eas, resolver, membership } =
+      await loadFixture(deploySimpleFixture);
+
+    const standardConsumer = await hre.viem.deployContract(
+      "FarcasterResolverStandardConsumer",
+      [
+        eas.address,
+        resolver.address,
+        membership.address,
+        false,
+        false,
+        false,
+        false,
+        32n,
+        0n,
+      ]
+    );
+
+    expect(await standardConsumer.read.supportsInterface(['0xbe3efb08'])).to.be.true
+    expect(await standardConsumer.read.supportsInterface(['0xfafec1c7'])).to.be.true
+  })
+
   it("No Ref", async function () {
     const { eas, resolver, membership, schemaRegistry, alices } =
       await loadFixture(deploySimpleFixture);
@@ -236,7 +259,7 @@ describe("StandardConsumer", function () {
       ]
     );
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -279,7 +302,7 @@ describe("StandardConsumer", function () {
       )
     );
 
-    expect(
+    await expect(
       eas.write.revoke(
         [
           {
@@ -338,7 +361,7 @@ describe("StandardConsumer", function () {
       ]
     );
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -360,7 +383,7 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -399,7 +422,7 @@ describe("StandardConsumer", function () {
       ])
     );
 
-    expect(
+    await expect(
       eas.write.revoke(
         [
           {
@@ -471,7 +494,7 @@ describe("StandardConsumer", function () {
       ]
     );
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -493,7 +516,7 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -530,11 +553,10 @@ describe("StandardConsumer", function () {
       ],
       {
         account: alices[0],
-        }
-      )
-    );
+      }
+    ));
 
-    expect(
+    await expect(
       eas.write.revoke(
         [
           {
@@ -558,6 +580,39 @@ describe("StandardConsumer", function () {
         },
       },
     ], { account: alices[0] });
+
+    await eas.write.revoke([
+      {
+        schema: keccak256(
+          encodePacked(["string", "address", "bool"], ["uint256 fid", simpleConsumer.address, true])
+        ),
+        data: {
+          uid,
+          value: 0n,
+        },
+      },
+    ], { account: alices[0] });
+
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uid,
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith(`AttestationRevoked("${uid}")`)
   });
 
   it("Basic Ref in body", async function () {
@@ -615,7 +670,7 @@ describe("StandardConsumer", function () {
       ]
     );
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -636,7 +691,7 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -680,7 +735,7 @@ describe("StandardConsumer", function () {
       )
     );
 
-    expect(
+    await expect(
       eas.write.revoke(
         [
           {
@@ -764,6 +819,27 @@ describe("StandardConsumer", function () {
         "0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35"
     )!.data;
 
+    const hashNoRef = await eas.write.attest([
+      {
+        schema: dummySchemaId,
+        data: {
+          recipient: "0x0000000000000000000000000000000000000000",
+          expirationTime: 0n,
+          revocable: true,
+          value: 0n,
+          refUID: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          data: dummyEncodedData,
+        },
+      },
+    ]);
+
+    const receiptNoRef = await publicClient.waitForTransactionReceipt({ hash: hashNoRef });
+    const uidNoRef = receiptNoRef.logs.find(
+      (log) =>
+        log.topics[0] ==
+        "0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35"
+    )!.data;
+
     const standardConsumer = await hre.viem.deployContract(
       "FarcasterResolverStandardConsumer",
       [
@@ -793,7 +869,7 @@ describe("StandardConsumer", function () {
       ]
     );
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -815,7 +891,7 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    expect(
+    await expect(
       eas.write.attest(
         [
           {
@@ -836,6 +912,27 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uidNoRef,
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith(`MissingFarcasterResolverConsumer("${uidNoRef}")`);
+
     const attUid = await getAttestationUid(await eas.write.attest(
       [
         {
@@ -855,7 +952,7 @@ describe("StandardConsumer", function () {
       }
     ));
 
-    expect(
+    await expect(
       eas.write.revoke(
         [
           {

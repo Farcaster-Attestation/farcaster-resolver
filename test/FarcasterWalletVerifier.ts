@@ -1,6 +1,7 @@
 import {
   time,
   loadFixture,
+  impersonateAccount,
 } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre, { ignition } from "hardhat";
@@ -26,6 +27,7 @@ import {
   encodeAbiParameters,
   encodePacked,
   getAddress,
+  getContract,
   keccak256,
   parseAbiParameters,
   PrivateKeyAccount,
@@ -549,6 +551,27 @@ describe("FarcasterWalletVerifier", function () {
             toHexString(message.data.verificationRemoveBody.address),
           ])
         ).to.equal(true)
+
+        {
+          const encodedData = encodeAbiParameters(
+            parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+            [
+              toHexString(message.signature.subarray(0, 32)),
+              toHexString(randomBytes(32)),
+              toHexString(messageBytes),
+            ]
+          );
+
+          const { result } = await resolver.simulate.revoke([
+            toHexString(message.data.verificationRemoveBody.address),
+            fid,
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ]);
+
+          expect(result).to.be.false
+        }
   
         const hash = await resolver.write.revoke([
           toHexString(message.data.verificationRemoveBody.address),
@@ -1734,4 +1757,350 @@ describe("FarcasterWalletVerifier", function () {
     })
   })
 
+  describe("Resolver invalid cases", async () => {
+    it("Revoke non-existence attestation", async () => {
+      const { resolver } = await loadFixture(deployFixture);
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      const { result } = await resolver.simulate.revoke([
+        toHexString(message.data.verificationRemoveBody.address),
+        BigInt(message.data.fid),
+        toHexString(message.signer),
+        1n,
+        encodedData,
+      ])
+
+      expect(result).to.be.false
+    })
+
+    it("Can't attest to resolver directly with EOA wallet", async () => {
+      const { resolver, eas } = await loadFixture(deployFixture);
+      const { alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+  
+      await expect(
+        eas.write.attest(
+          [
+            {
+              schema: await resolver.read.schemaId(),
+              data: {
+                recipient: alice.address,
+                expirationTime: 0n,
+                revocable: true,
+                value: 0n,
+                refUID:
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                data: encodedData,
+              },
+            },
+          ],
+        )
+      ).to.be.rejected;
+    })
+
+    it("Duplicated attestations", async () => {
+      const { resolver, publicKeyVerifier } = await loadFixture(deployFixture);
+
+      const { message, messageBytes } = await signVerificationAddAddress();
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      await resolver.write.attest([
+        toHexString(message.data.verificationAddAddressBody.address),
+        fid,
+        toHexString(message.signer),
+        1n,
+        encodedData,
+      ]);
+
+      await expect(
+        resolver.write.attest([
+          toHexString(message.data.verificationAddAddressBody.address),
+          fid,
+          toHexString(message.signer),
+          1n,
+          encodedData,
+        ])
+      ).to.be.rejected;
+    })
+
+    // These cases are impossible as there is no way to attest with different schema and attestor
+    // Therefore, we only simulate these cases
+    it("Simulate impossible attestations", async () => {
+      const [ walletClient ] = await hre.viem.getWalletClients()
+      const publicClient = await hre.viem.getPublicClient()
+
+      const { resolver, eas, schemaRegistry } = await loadFixture(deployFixture);
+      const { alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      await schemaRegistry.write.register([
+        "bytes32 dummy",
+        resolver.address,
+        true,
+      ]);
+    
+      const schemaId = keccak256(
+        encodePacked(
+          ["string", "address", "bool"],
+          ["bytes32 dummy", resolver.address, true]
+        )
+      );
+
+      const contract = getContract({
+        address: resolver.address,
+        abi: [
+          {
+            "inputs": [
+              {
+                "components": [
+                  {
+                    "internalType": "bytes32",
+                    "name": "uid",
+                    "type": "bytes32"
+                  },
+                  {
+                    "internalType": "bytes32",
+                    "name": "schema",
+                    "type": "bytes32"
+                  },
+                  {
+                    "internalType": "uint64",
+                    "name": "time",
+                    "type": "uint64"
+                  },
+                  {
+                    "internalType": "uint64",
+                    "name": "expirationTime",
+                    "type": "uint64"
+                  },
+                  {
+                    "internalType": "uint64",
+                    "name": "revocationTime",
+                    "type": "uint64"
+                  },
+                  {
+                    "internalType": "bytes32",
+                    "name": "refUID",
+                    "type": "bytes32"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "recipient",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "attester",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "revocable",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "bytes",
+                    "name": "data",
+                    "type": "bytes"
+                  }
+                ],
+                "internalType": "struct Attestation",
+                "name": "attestation",
+                "type": "tuple"
+              }
+            ],
+            "name": "attest",
+            "outputs": [
+              {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+              }
+            ],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [
+              {
+                "components": [
+                  {
+                    "internalType": "bytes32",
+                    "name": "uid",
+                    "type": "bytes32"
+                  },
+                  {
+                    "internalType": "bytes32",
+                    "name": "schema",
+                    "type": "bytes32"
+                  },
+                  {
+                    "internalType": "uint64",
+                    "name": "time",
+                    "type": "uint64"
+                  },
+                  {
+                    "internalType": "uint64",
+                    "name": "expirationTime",
+                    "type": "uint64"
+                  },
+                  {
+                    "internalType": "uint64",
+                    "name": "revocationTime",
+                    "type": "uint64"
+                  },
+                  {
+                    "internalType": "bytes32",
+                    "name": "refUID",
+                    "type": "bytes32"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "recipient",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "address",
+                    "name": "attester",
+                    "type": "address"
+                  },
+                  {
+                    "internalType": "bool",
+                    "name": "revocable",
+                    "type": "bool"
+                  },
+                  {
+                    "internalType": "bytes",
+                    "name": "data",
+                    "type": "bytes"
+                  }
+                ],
+                "internalType": "struct Attestation",
+                "name": "attestation",
+                "type": "tuple"
+              }
+            ],
+            "name": "revoke",
+            "outputs": [
+              {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+              }
+            ],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+        ],
+        client: {
+          public: publicClient,
+          wallet: walletClient,
+        },
+      });
+
+      await impersonateAccount("0x4200000000000000000000000000000000000021")
+      const [easAccount] = await hre.viem.getWalletClients({account: "0x4200000000000000000000000000000000000021"})
+
+      {
+        const { result } = await contract.simulate.attest([
+          {
+            uid: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            attester: resolver.address,
+            data: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            expirationTime: 0n,
+            recipient: alice.address,
+            refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            revocable: true,
+            revocationTime: 0n,
+            schema: schemaId,
+            time: 1000n,
+          }
+        ], {
+          account: easAccount.account as any,
+        })
+
+        expect(result).to.be.false
+      }
+
+      {
+        const { result } = await contract.simulate.revoke([
+          {
+            uid: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            attester: alice.address,
+            data: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            expirationTime: 0n,
+            recipient: alice.address,
+            refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            revocable: true,
+            revocationTime: 0n,
+            schema: schemaId,
+            time: 1000n,
+          }
+        ], {
+          account: easAccount.account as any,
+        })
+
+        expect(result).to.be.false
+      }
+
+      {
+        const { result } = await contract.simulate.revoke([
+          {
+            uid: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            attester: resolver.address,
+            data: '0x00',
+            expirationTime: 0n,
+            recipient: alice.address,
+            refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            revocable: true,
+            revocationTime: 0n,
+            schema: schemaId,
+            time: 1000n,
+          }
+        ], {
+          account: easAccount.account as any,
+        })
+
+        expect(result).to.be.false
+      }
+    })
+  })
 })
