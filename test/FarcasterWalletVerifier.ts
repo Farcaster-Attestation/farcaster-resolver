@@ -30,6 +30,7 @@ import {
   getContract,
   keccak256,
   parseAbiParameters,
+  parseEther,
   PrivateKeyAccount,
 } from "viem";
 
@@ -753,6 +754,7 @@ describe("FarcasterWalletVerifier", function () {
     });
 
     it("Invalid signature challenged", async function () {
+      const [ wallet1 ] = await hre.viem.getWalletClients()
       const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
       const { fid, alice, message, messageBytes } =
         await signVerificationAddAddress();
@@ -796,6 +798,18 @@ describe("FarcasterWalletVerifier", function () {
 
       await time.increase(86400);
 
+      await expect(walletOptimisticVerifier.read.verifyAdd([
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ])).to.be.rejectedWith(`NotEnoughDeposit(${parseEther('0.015')})`)
+
+      await wallet1.sendTransaction({
+        to: walletOptimisticVerifier.address,
+        value: parseEther('0.005'),
+      })
+
       const result = await walletOptimisticVerifier.read.verifyAdd([
         fid,
         alice.address,
@@ -806,7 +820,101 @@ describe("FarcasterWalletVerifier", function () {
       expect(result).to.equal(false);
     });
 
-    it("Valid signature but invalid public key challenged", async function () {
+    it("Invalid signature challenged until reward depleted", async function () {
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
+
+      const challengeArgs: [bigint, `0x${string}`, `0x${string}`, `0x${string}`][] = []
+
+      for (let i = 0; i < 5; i++) {
+        const { fid, alice, message, messageBytes } = await signVerificationAddAddress(BigInt(i + 10));
+
+        await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(randomBytes(32)),
+            toHexString(messageBytes),
+          ]
+        );
+
+        await walletOptimisticVerifier.write.submitVerification([
+          MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+          fid,
+          alice.address,
+          toHexString(message.signer),
+          encodedData,
+        ]);
+
+        challengeArgs.push([
+          fid,
+          alice.address, 
+          toHexString(message.signer),
+          encodedData
+        ])
+      }
+
+      await time.increase(16400);
+
+      for (let i = 0; i < 5; i++) {
+        const challenged = await walletOptimisticVerifier.read.tryChallengeAdd(challengeArgs[i]);
+
+        expect(challenged).to.equal(true);
+
+        await walletOptimisticVerifier.write.challengeAdd(challengeArgs[i]);
+      }
+
+      await time.increase(86400);
+
+      for (let i = 0; i < 5; i++) {
+        await expect(walletOptimisticVerifier.read.verifyAdd(challengeArgs[i])).to.be.rejectedWith(`NotEnoughDeposit(0)`)
+      }
+    });
+
+    it("Can't submit verification without enough deposit", async function () {
+      const [ wallet1 ] = await hre.viem.getWalletClients()
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
+      const { fid, alice, message, messageBytes } =
+        await signVerificationAddAddress();
+
+      await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(randomBytes(32)),
+          toHexString(messageBytes),
+        ]
+      );
+
+      await walletOptimisticVerifier.write.submitVerification([
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      await walletOptimisticVerifier.write.challengeAdd([
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ]);
+
+      await expect(walletOptimisticVerifier.write.submitVerification([
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        fid,
+        alice.address,
+        toHexString(message.signer),
+        encodedData,
+      ])).to.be.rejectedWith(`NotEnoughDeposit(${parseEther('0.015')})`);
+    });
+
+    it("Valid signature but invalid public key can't be submitted", async function () {
+      const [ wallet1 ] = await hre.viem.getWalletClients()
       const { walletOptimisticVerifier } = await loadFixture(deployFixture);
       const { fid, alice, message, messageBytes } =
         await signVerificationAddAddress();
@@ -820,31 +928,13 @@ describe("FarcasterWalletVerifier", function () {
         ]
       );
 
-      await walletOptimisticVerifier.write.submitVerification([
+      await expect(walletOptimisticVerifier.write.submitVerification([
         MessageType.VERIFICATION_ADD_ETH_ADDRESS,
         fid,
         alice.address,
         toHexString(message.signer),
         encodedData,
-      ]);
-
-      await time.increase(16400);
-
-      const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
-        fid,
-        alice.address, 
-        toHexString(message.signer),
-        encodedData
-      ]);
-
-      expect(challenged).to.equal(true);
-
-      await walletOptimisticVerifier.write.challengeAdd([
-        fid,
-        alice.address,
-        toHexString(message.signer),
-        encodedData,
-      ]);
+      ])).to.be.rejectedWith(`InvalidPublicKey(${fid}, "${toHexString(message.signer)}")`);
 
       await time.increase(86400);
 
@@ -860,7 +950,8 @@ describe("FarcasterWalletVerifier", function () {
 
     it("Valid remove signature but not submitted", async function () {
       const { walletOptimisticVerifier } = await loadFixture(deployFixture);
-      const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
 
       const encodedData = encodeAbiParameters(
         parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -873,7 +964,7 @@ describe("FarcasterWalletVerifier", function () {
 
       const result = await walletOptimisticVerifier.read.verifyRemove([
         fid,
-        alice.address,
+        toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
       ]);
@@ -883,7 +974,8 @@ describe("FarcasterWalletVerifier", function () {
 
     it("Valid remove signature but not wait 1 day", async function () {
       const { walletOptimisticVerifier } = await loadFixture(deployFixture);
-      const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
 
       const encodedData = encodeAbiParameters(
         parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -897,14 +989,14 @@ describe("FarcasterWalletVerifier", function () {
       await walletOptimisticVerifier.write.submitVerification([
         MessageType.VERIFICATION_REMOVE,
         fid,
-        alice.address,
+        toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
       ]);
 
       const result = await walletOptimisticVerifier.read.verifyRemove([
         fid,
-        alice.address,
+        toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
       ]);
@@ -914,7 +1006,8 @@ describe("FarcasterWalletVerifier", function () {
 
     it("Valid remove signature and wait 1 day", async function () {
       const { walletOptimisticVerifier } = await loadFixture(deployFixture);
-      const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+      const message = removeMessage;
+      const messageBytes = removeMessageBytes;
 
       const encodedData = encodeAbiParameters(
         parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
@@ -928,7 +1021,7 @@ describe("FarcasterWalletVerifier", function () {
       await walletOptimisticVerifier.write.submitVerification([
         MessageType.VERIFICATION_REMOVE,
         fid,
-        alice.address,
+        toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
       ]);
@@ -937,7 +1030,7 @@ describe("FarcasterWalletVerifier", function () {
 
       const result = await walletOptimisticVerifier.read.verifyRemove([
         fid,
-        alice.address,
+        toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
       ]);
@@ -1025,7 +1118,60 @@ describe("FarcasterWalletVerifier", function () {
       expect(challenged).to.equal(true);
     });
 
-    it("Valid remove signature but invalid public key challenged", async function () {
+    it("Invalid remove signature challenged until reward depleted", async function () {
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
+
+      const challengeArgs: [bigint, `0x${string}`, `0x${string}`, `0x${string}`][] = []
+
+      for (let i = 0; i < 5; i++) {
+        const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress(BigInt(i + 10));
+
+        await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
+
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(randomBytes(32)),
+            toHexString(messageBytes),
+          ]
+        );
+
+        await walletOptimisticVerifier.write.submitVerification([
+          MessageType.VERIFICATION_REMOVE,
+          fid,
+          alice.address,
+          toHexString(message.signer),
+          encodedData,
+        ]);
+
+        challengeArgs.push([
+          fid,
+          alice.address, 
+          toHexString(message.signer),
+          encodedData
+        ])
+      }
+  
+      await time.increase(16400);
+
+      for (let i = 0; i < 5; i++) {
+        const challenged = await walletOptimisticVerifier.read.tryChallengeRemove(challengeArgs[i]);
+
+        expect(challenged).to.equal(true);
+
+        await walletOptimisticVerifier.write.challengeRemove(challengeArgs[i]);
+      }
+
+      await time.increase(86400);
+
+      for (let i = 0; i < 5; i++) {
+        await expect(walletOptimisticVerifier.read.verifyRemove(challengeArgs[i])).to.be.rejectedWith(`NotEnoughDeposit(0)`)
+      }
+    });
+
+    it("Valid remove signature but invalid public key can't be submitted", async function () {
+      const [ wallet1 ] = await hre.viem.getWalletClients()
       const { walletOptimisticVerifier } = await loadFixture(deployFixture);
       const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
 
@@ -1038,31 +1184,13 @@ describe("FarcasterWalletVerifier", function () {
         ]
       );
 
-      await walletOptimisticVerifier.write.submitVerification([
+      await expect(walletOptimisticVerifier.write.submitVerification([
         MessageType.VERIFICATION_REMOVE,
         fid,
         alice.address,
         toHexString(message.signer),
         encodedData,
-      ]);
-
-      await time.increase(16400);
-
-      const challenged = await walletOptimisticVerifier.read.tryChallengeRemove([
-        fid,
-        alice.address,
-        toHexString(message.signer),
-        encodedData,
-      ]);
-
-      expect(challenged).to.equal(true);
-
-      await walletOptimisticVerifier.write.challengeRemove([
-        fid,
-        alice.address,
-        toHexString(message.signer),
-        encodedData,
-      ]);
+      ])).to.be.rejectedWith(`InvalidPublicKey(${fid}, "${toHexString(message.signer)}")`);
 
       await time.increase(86400);
 
@@ -1449,7 +1577,7 @@ describe("FarcasterWalletVerifier", function () {
       const [ wallet1, wallet2 ] = await hre.viem.getWalletClients()
   
       // Add security role for self
-      const { walletOptimisticVerifier } = await loadFixture(
+      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(
         deployFixture
       );
   
@@ -1482,6 +1610,8 @@ describe("FarcasterWalletVerifier", function () {
 
       {
         const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress();
+
+        await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
 
         const encodedData = encodeAbiParameters(
           parseAbiParameters("bytes32 r, bytes32 s, bytes message"),

@@ -42,7 +42,7 @@ describe("FarcasterPublicKeyVerifier", function () {
     expect(await publicKeyVerifier.read.verifyPublicKey([100000000n, '0xab77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
   });
 
-  it("Add key", async function () {
+  it("Add and remove key", async function () {
     const { publicKeyVerifier } = await loadFixture(deployFixture);
 
     expect(await publicKeyVerifier.read.verifyPublicKey([328680n, '0xcc77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
@@ -50,6 +50,10 @@ describe("FarcasterPublicKeyVerifier", function () {
     await publicKeyVerifier.write.addKey([328680n, '0xcc77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a']);
 
     expect(await publicKeyVerifier.read.verifyPublicKey([328680n, '0xcc77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(true);
+
+    await publicKeyVerifier.write.removeKey([328680n, '0xcc77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a']);
+
+    expect(await publicKeyVerifier.read.verifyPublicKey([328680n, '0xcc77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
   });
 
   it("Non-operator can't add key", async function () {
@@ -65,6 +69,23 @@ describe("FarcasterPublicKeyVerifier", function () {
     ).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${OPERATOR_ROLE}")`);
 
     expect(await publicKeyVerifier.read.verifyPublicKey([328681n, '0xdd77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(false);
+  });
+
+  it("Non-operator can't remove key", async function () {
+    const [ _, wallet2 ] = await hre.viem.getWalletClients()
+    const { publicKeyVerifier } = await loadFixture(deployFixture);
+
+    const OPERATOR_ROLE = keccak256(Buffer.from("OPERATOR_ROLE"));
+
+    await publicKeyVerifier.write.addKey([328681n, '0xdd77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a']);
+
+    expect(await publicKeyVerifier.read.verifyPublicKey([328681n, '0xdd77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(true);
+
+    await expect(
+      publicKeyVerifier.write.removeKey([328681n, '0xdd77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'], { account: wallet2.account })
+    ).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${OPERATOR_ROLE}")`);
+
+    expect(await publicKeyVerifier.read.verifyPublicKey([328681n, '0xdd77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a'])).to.equal(true);
   });
 
   it("Blacklist operator", async function () {

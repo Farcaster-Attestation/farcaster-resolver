@@ -15,7 +15,9 @@ contract FarcasterWalletOptimisticVerifier is
     AccessControl
 {
     error InvalidMessageType(MessageType messageType);
+    error InvalidPublicKey(uint256 fid, bytes32 publicKey);
     error ChallengeFailed();
+    error NotEnoughDeposit(uint256 balance);
 
     /// @notice Role identifier for relayer role
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
@@ -30,10 +32,24 @@ contract FarcasterWalletOptimisticVerifier is
     IFarcasterPublicKeyVerifier public immutable publicKeyVerifier;
 
     /// @notice The challenging period duration.
-    uint256 public challengingPeriod = 1 days;
+    uint256 public immutable challengingPeriod;
+
+    /// @notice The ETH amount that needed for security deposit.
+    uint256 public immutable depositAmount;
+
+    /// @notice The ETH amount that is rewarded to the challenger on each challenge.
+    uint256 public immutable challengeRewardAmount;
 
     /// @notice Mapping of verification hash to the timestamp of verification.
     mapping(bytes32 => uint256) public verificationTimestamp;
+
+    modifier enoughDeposit {
+        if (address(this).balance < depositAmount) {
+            revert NotEnoughDeposit(address(this).balance);
+        }
+
+        _;
+    }
 
     /**
      * @dev Constructor to set the on-chain verifier and the relayer address.
@@ -43,14 +59,23 @@ contract FarcasterWalletOptimisticVerifier is
     constructor(
         IFarcasterWalletVerifier verifier,
         IFarcasterPublicKeyVerifier pubKeyVerifier,
+        uint256 _challengingPeriod,
+        uint256 _depositAmount,
+        uint256 _challengeRewardAmount,
         address admin
-    ) {
+    ) payable {
         onchainVerifier = verifier;
         publicKeyVerifier = pubKeyVerifier;
+
+        challengingPeriod = _challengingPeriod;
+        depositAmount = _depositAmount;
+        challengeRewardAmount = _challengeRewardAmount;
         
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(RELAYER_ROLE, admin);
     }
+
+    receive() payable external {}
 
     /**
      * Disable a malicious relayer in an emergency by the security council.
@@ -128,7 +153,16 @@ contract FarcasterWalletOptimisticVerifier is
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) public onlyRole(RELAYER_ROLE) {
+    ) public enoughDeposit onlyRole(RELAYER_ROLE) {
+        bool publicKeyVerified = publicKeyVerifier.verifyPublicKey(
+            fid,
+            publicKey
+        );
+
+        if (!publicKeyVerified) {
+            revert InvalidPublicKey(fid, publicKey);
+        }
+
         bytes32 h = hash(messageType, fid, verifyAddress, publicKey, signature);
 
         verificationTimestamp[h] = block.timestamp;
@@ -156,7 +190,7 @@ contract FarcasterWalletOptimisticVerifier is
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view returns (bool) {
+    ) external view enoughDeposit returns (bool) {
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
             fid,
@@ -183,7 +217,7 @@ contract FarcasterWalletOptimisticVerifier is
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view returns (bool) {
+    ) external view enoughDeposit returns (bool) {
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
             fid,
@@ -215,6 +249,10 @@ contract FarcasterWalletOptimisticVerifier is
         bytes signature
     );
 
+    function challengeReward() internal view returns(uint256) {
+        return address(this).balance > challengeRewardAmount ? challengeRewardAmount : address(this).balance;
+    }
+
     /**
      * @notice Challenges the Farcaster wallet verification submission.
      * @param fid The Farcaster ID (FID) of the user.
@@ -238,28 +276,24 @@ contract FarcasterWalletOptimisticVerifier is
 
         if (verificationTimestamp[h] > 0) {
             try
-                publicKeyVerifier.verifyPublicKey(
+                onchainVerifier.verifyAdd(
                     fid,
-                    publicKey
+                    verifyAddress,
+                    publicKey,
+                    signature
                 )
-            returns (bool pubKeyVerified) {
-                if (pubKeyVerified) {
-                    try
-                        onchainVerifier.verifyAdd(
-                            fid,
-                            verifyAddress,
-                            publicKey,
-                            signature
-                        )
-                    returns (bool verified) {
-                        if (verified) {
-                            revert ChallengeFailed();
-                        }
-                    } catch {}
+            returns (bool verified) {
+                if (verified) {
+                    revert ChallengeFailed();
                 }
             } catch {}
 
             verificationTimestamp[h] = 0;
+
+            {
+                (bool success, ) = payable(msg.sender).call{value: challengeReward()}("");
+                require(success);
+            }
 
             emit Challenged(
                 MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
@@ -295,28 +329,24 @@ contract FarcasterWalletOptimisticVerifier is
 
         if (verificationTimestamp[h] > 0) {
             try
-                publicKeyVerifier.verifyPublicKey(
+                onchainVerifier.verifyRemove(
                     fid,
-                    publicKey
+                    verifyAddress,
+                    publicKey,
+                    signature
                 )
-            returns (bool pubKeyVerified) {
-                if (pubKeyVerified) {
-                    try
-                        onchainVerifier.verifyRemove(
-                            fid,
-                            verifyAddress,
-                            publicKey,
-                            signature
-                        )
-                    returns (bool verified) {
-                        if (verified) {
-                            revert ChallengeFailed();
-                        }
-                    } catch {}
+            returns (bool verified) {
+                if (verified) {
+                    revert ChallengeFailed();
                 }
             } catch {}
 
             verificationTimestamp[h] = 0;
+
+            {
+                (bool success, ) = payable(msg.sender).call{value: challengeReward()}("");
+                require(success);
+            }
 
             emit Challenged(
                 MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
@@ -344,24 +374,15 @@ contract FarcasterWalletOptimisticVerifier is
         bytes memory signature
     ) public view returns(bool) {
         try
-            publicKeyVerifier.verifyPublicKey(
+            onchainVerifier.verifyAdd(
                 fid,
-                publicKey
+                verifyAddress,
+                publicKey,
+                signature
             )
-        returns (bool pubKeyVerified) {
-            if (pubKeyVerified) {
-                try
-                    onchainVerifier.verifyAdd(
-                        fid,
-                        verifyAddress,
-                        publicKey,
-                        signature
-                    )
-                returns (bool verified) {
-                    if (verified) {
-                        return false;
-                    }
-                } catch {}
+        returns (bool verified) {
+            if (verified) {
+                return false;
             }
         } catch {}
 
@@ -382,24 +403,15 @@ contract FarcasterWalletOptimisticVerifier is
         bytes memory signature
     ) public view returns(bool) {
         try
-            publicKeyVerifier.verifyPublicKey(
+            onchainVerifier.verifyRemove(
                 fid,
-                publicKey
+                verifyAddress,
+                publicKey,
+                signature
             )
-        returns (bool pubKeyVerified) {
-            if (pubKeyVerified) {
-                try
-                    onchainVerifier.verifyRemove(
-                        fid,
-                        verifyAddress,
-                        publicKey,
-                        signature
-                    )
-                returns (bool verified) {
-                    if (verified) {
-                        return false;
-                    }
-                } catch {}
+        returns (bool verified) {
+            if (verified) {
+                return false;
             }
         } catch {}
 

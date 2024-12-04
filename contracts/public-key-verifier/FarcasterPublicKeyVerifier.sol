@@ -22,6 +22,9 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
     /// @notice Event emitted when a key is added.
     event AddKey(uint256 indexed fid, bytes32 indexed publicKey);
 
+    /// @notice Event emitted when a key is removed.
+    event RemoveKey(uint256 indexed fid, bytes32 indexed publicKey);
+
     /// @notice Event emitted when an operator is blacklisted.
     event BlacklistOperator(address indexed operator);
 
@@ -49,7 +52,7 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
         uint256 fid,
         bytes32 publicKey
     ) external view returns (bool) {
-        IKeyRegistry.KeyData memory data = IKeyRegistry(keyRegistry).keyDataOf(fid, abi.encodePacked(publicKey));
+        IKeyRegistry.KeyData memory data = keyRegistry.keyDataOf(fid, abi.encodePacked(publicKey));
         return (data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1) || keyExternal[fid][publicKey];
     }
 
@@ -61,6 +64,16 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
     function addKey(uint256 fid, bytes32 publicKey) external onlyRole(OPERATOR_ROLE) {
         keyExternal[fid][publicKey] = true;
         emit AddKey(fid, publicKey);
+    }
+
+    /**
+     * @notice Remove a public key from the external mapping.
+     * @param fid The Farcaster ID (FID) of the user.
+     * @param publicKey The public key to be removed.
+     */
+    function removeKey(uint256 fid, bytes32 publicKey) external onlyRole(OPERATOR_ROLE) {
+        keyExternal[fid][publicKey] = false;
+        emit RemoveKey(fid, publicKey);
     }
 
     function blacklistOperator(address operator) external onlyRole(SECURITY_ROLE) {
