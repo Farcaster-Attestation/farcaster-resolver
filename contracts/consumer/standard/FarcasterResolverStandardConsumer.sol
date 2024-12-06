@@ -153,6 +153,9 @@ contract FarcasterResolverStandardConsumer is
                 Attestation memory ref,
             ) = decodeRecursiveRefUid(firstRef, value, isRevoke);
 
+            if (ref.revocationTime > 0)
+                revert AttestationRevoked(ref.uid);
+
             valid = membership.verifyMember(ref.uid, fid, isRevoke ? FARCASTER_MEMBERSHIP_CAN_REVOKE : FARCASTER_MEMBERSHIP_CAN_ATTEST);
         }
     }
