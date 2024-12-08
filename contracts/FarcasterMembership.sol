@@ -185,7 +185,7 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
             !hasPermission(
                 adminPermissions,
                 FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN
-            ) && permissions >= 4
+            ) && permissions >= 8
         ) {
             revert PermissionDenied();
         }
@@ -240,27 +240,29 @@ contract FarcasterMembership is IFarcasterMembership, SchemaResolver, Multicall 
             revert PermissionDenied();
         }
 
-        if (
-            !hasPermission(
-                adminPermissions,
-                FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER
-            ) &&
-            !hasPermission(
-                adminPermissions,
-                FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN
-            )
-        ) {
-            revert PermissionDenied();
-        }
+        if (adminFid != memberFid) {
+            if (
+                !hasPermission(
+                    adminPermissions,
+                    FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER
+                ) &&
+                !hasPermission(
+                    adminPermissions,
+                    FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN
+                )
+            ) {
+                revert PermissionDenied();
+            }
 
-        if (
-            memberPermissions >= 4 &&
-            !hasPermission(
-                adminPermissions,
-                FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN
-            )
-        ) {
-            revert PermissionDenied();
+            if (
+                memberPermissions >= 8 &&
+                !hasPermission(
+                    adminPermissions,
+                    FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN
+                )
+            ) {
+                revert PermissionDenied();
+            }
         }
 
         members[attUid].remove(memberFid);
