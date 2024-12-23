@@ -1,13 +1,40 @@
-# Sample Hardhat Project
+# Farcaster Resolver
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+Issuing attestations through a verified Farcaster wallet on the Superchain
 
-Try running some of the following tasks:
+## Architecture
 
-```shell
-npx hardhat help
+![image](https://github.com/user-attachments/assets/ef0e9c34-c459-41dc-bd36-87ad747e0bb6)
+
+## Building the project
+ 
+The Farcaster Resolver is built using Hardhat. To run tests and deploy the contract, ensure you configure your private key and the Optimism RPC address in the `.env` file, as the tests are operated in fork mode.
+
+### Setting the environment
+
+Create an `.env` file with the following secrets
+
+```
+RPC_URL=<Optimism mainnet RPC>
+RPC_TESTNET_URL=<Optimism sepolia testnet RPC>
+PRIVATE_KEY=<Private key for contract deployment>
+ETHERSCAN_API_KEY=<Etherscsn API Key>
+```
+
+### Compiling the contracts
+
+```
+npx hardhat compile
+```
+
+### Running tests
+
+```
 npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
+```
+
+### Running coverage
+
+```
+npm run coverage
 ```
