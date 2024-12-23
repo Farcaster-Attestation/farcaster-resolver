@@ -6,6 +6,12 @@ Issuing attestations through a verified Farcaster wallet on the Superchain
 
 ![image](https://github.com/user-attachments/assets/ef0e9c34-c459-41dc-bd36-87ad747e0bb6)
 
+- **FarcasterResolver** - The primary contract that verifies and stores the relationship between a Farcaster-verified wallet address and its FID.
+- **FarcasterResolverInterop** - A wrapper for FarcasterResolver, enabling interoperability across the Superchain with deterministic deployment to the same address.
+- **FarcasterPublicKeyVerifier** - A contract that validates public keys and FIDs against the Farcaster KeyRegistry.
+- **FarcasterOnchainVerifier** - A contract that fully computes and verifies Farcaster wallet verification add/remove messages directly on-chain.
+- **FarcasterOptimisticVerifier** - A contract that verifies Farcaster wallet verification add/remove messages optimistically by relying on trusted, whitelisted relays. It includes a one-day challenge period, allowing anyone to dispute and verify the messages on-chain.
+
 ## Building the project
  
 The Farcaster Resolver is built using Hardhat. To run tests and deploy the contract, ensure you configure your private key and the Optimism RPC address in the `.env` file, as the tests are operated in fork mode.
