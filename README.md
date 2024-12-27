@@ -122,7 +122,7 @@ function isVerified(
 
 ### Retrieving the Attestation UID
 
-To retrieve the unique attestation identifier (UID) for a verified wallet-FID pair, call the `getAttestationUid` function:
+To retrieve the attestation UID for a verified wallet-FID pair, call the `getAttestationUid` function:
 
 ```solidity
 function getAttestationUid(
