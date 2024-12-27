@@ -187,3 +187,37 @@ We also offer an abstract contract, `FarcasterResolverConsumer`, which you can i
 - **Schema Requirements:** The schema must include a `bytes32 fid` as its first field.
 - The attester’s wallet is used with the FID to verify the attestation.
 - If you need a more customized solution, you must deploy your own resolver by using the `FarcasterResolverStandardConsumer` described below.
+
+### FarcasterResolverStandardConsumer
+**FarcasterResolverStandardConsumer** is an advanced resolver consumer contract built on top of **FarcasterResolverConsumer**, offering greater customization for verifying Farcaster attestations. It supports:
+
+- Verifying Farcaster attestations with flexible configurations.  
+- Referencing and validating a secondary attestation.  
+- Schemas designed for organizational or membership structures.
+
+Unlike the simple consumer, the standard consumer requires you to deploy your own resolver consumer contract, supplying the necessary configurations.
+
+```solidity
+constructor(
+    IEAS _eas,
+    IFarcasterVerification _resolver,
+    IFarcasterMembership _membership,
+    bool _useRecipient,
+    bool _useRefFid,
+    bool _useRefCheck,
+    bool _useRefBody,
+    uint256 _fidOffset,
+    uint256 _refOffset
+) FarcasterResolverConsumer(_eas, _resolver)
+```
+
+#### Constructor Arguments
+- **_eas**: The address of the deployed [Ethereum Attestation Service (EAS)](https://github.com/ethereum-attestation-service) contract.  
+- **_resolver**: A contract implementing `IFarcasterVerification` (e.g., verifying that a wallet corresponds to an FID).  
+- **_membership**: A contract implementing `IFarcasterMembership` for membership and permission checks.  
+- **_useRecipient**: If `true`, uses the attestation’s recipient for wallet verification; otherwise, uses the attester.  
+- **_useRefFid**: If `true`, retrieves the FID from a referenced attestation’s data rather than from the primary attestation’s data.  
+- **_useRefCheck**: If `true`, performs membership and permission checks on the referenced attestation.  
+- **_useRefBody**: If `true`, reads `refUID` from the attestation body; otherwise, reads `Attestation.refUID`.  
+- **_fidOffset**: The byte offset in `Attestation.data` where the FID is located (when `_useRefFid` is `false`).  
+- **_refOffset**: The byte offset in `Attestation.data` where the `refUID` is located (when `_useRefBody` is `true`).
