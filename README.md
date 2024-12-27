@@ -174,3 +174,16 @@ function getWalletAttestations(
 ```
 
 This call returns all Farcaster IDs that the specified wallet address has verified, along with their unique attestation identifiers.
+
+## Developing an EAS Resolver for Farcaster Attestation Schemas
+
+To enable fully on-chain Farcaster attestations for your schema, you must deploy your schema with a resolver that verifies the wallet attestation. To simplify development, we provide two types of resolver consumer contracts: **FarcasterResolverSimpleConsumer** and **FarcasterResolverStandardConsumer**.
+
+We also offer an abstract contract, `FarcasterResolverConsumer`, which you can inherit to create a custom resolver. By implementing the `decodeFarcasterAttestation` function in your custom contract, you can decode the wallet address and FID from the attestation body for verification.
+
+### FarcasterResolverSimpleConsumer
+**FarcasterResolverSimpleConsumer** is a predeployed resolver contract that can be used immediately for Farcaster-verified wallet attestations. Here’s what you need to know:
+- **No Additional Deployment:** You can directly use this predeployed contract as your resolver.
+- **Schema Requirements:** The schema must include a `bytes32 fid` as its first field.
+- The attester’s wallet is used with the FID to verify the attestation.
+- If you need a more customized solution, you must deploy your own resolver by using the `FarcasterResolverStandardConsumer` described below.
