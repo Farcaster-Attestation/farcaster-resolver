@@ -11,6 +11,12 @@ Issuing attestations through a verified Farcaster wallet on the Superchain
 - **FarcasterPublicKeyVerifier** - A contract that validates public keys and FIDs against the Farcaster KeyRegistry.
 - **FarcasterOnchainVerifier** - A contract that fully computes and verifies Farcaster wallet verification add/remove messages directly on-chain.
 - **FarcasterOptimisticVerifier** - A contract that verifies Farcaster wallet verification add/remove messages optimistically by relying on trusted, whitelisted relays. It includes a one-day challenge period, allowing anyone to dispute and verify the messages on-chain.
+- **FcVerificationDecoder** - Library for decoding Farcaster verification GRPC-encoded messages.  
+- **FcMessageVerification** - Library for verifying Farcaster message signatures.  
+- **FarcasterResolverConsumer** - Abstract contract template for implementing resolvers requiring Farcaster verification.  
+- **FarcasterResolverSimpleConsumer** - Simple resolver for schemas allowing only attestations from Farcaster-verified wallets.  
+- **FarcasterResolverStandardConsumer** - Customizable resolver for schemas needing complex verification, such as reference and membership validation.  
+- **FarcasterMembership** - Membership system enabling attestation owners to invite other Farcaster users to reference the attestation.  
 
 ## Building the project
  
