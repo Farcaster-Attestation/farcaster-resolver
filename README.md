@@ -104,3 +104,29 @@ There are two verification methods: Onchain (1) and Optimistic (2)
 ### Getting publicKey and signature (verification message)
 
 TODO
+
+## Querying Wallet Verification Data
+
+In addition to attestation, the `FarcasterResolver` contract lets you query wallet verification data directly.
+
+### Checking if a Wallet Address and FID Are Verified
+
+To check if a specific wallet address and Farcaster FID pair is verified, call the `isVerified` function:
+
+```solidity
+function isVerified(
+    uint256 fid,
+    address wallet
+) public view returns (bool)
+```
+
+### Retrieving the Attestation UID
+
+To retrieve the unique attestation identifier (UID) for a verified wallet-FID pair, call the `getAttestationUid` function:
+
+```solidity
+function getAttestationUid(
+    uint256 fid,
+    address wallet
+) public view returns (bytes32)
+```
