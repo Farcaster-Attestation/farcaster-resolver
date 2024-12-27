@@ -130,3 +130,47 @@ function getAttestationUid(
     address wallet
 ) public view returns (bytes32)
 ```
+
+### Retrieving All Wallets for a Farcaster ID
+
+```solidity
+function getFidAttestations(
+    uint256 fid
+) public view returns (address[] memory wallets, bytes32[] memory uids)
+```
+
+#### How it Works
+- **Input**: A Farcaster ID (`fid`).
+- **Output**:
+  - An array of wallet addresses (`wallets`) that have been verified for the specified `fid`.  
+  - An array of attestation UIDs (`uids`) representing on-chain attestations.
+
+#### Example Usage
+
+```solidity
+(address[] memory wallets, bytes32[] memory uids) = farcasterResolver.getFidAttestations(fid);
+```
+
+This call returns all verified wallet addresses for the given Farcaster ID. Each attestation is uniquely identified by the corresponding `uids` array.
+
+### Retrieving All FIDs for a Wallet
+
+```solidity
+function getWalletAttestations(
+    address wallet
+) public view returns (uint256[] memory fids, bytes32[] memory uids)
+```
+
+#### How it Works
+- **Input**: A wallet address (`wallet`).
+- **Output**:
+  - An array of Farcaster IDs (`fids`) that have been attested for the specified wallet.  
+  - An array of attestation UIDs (`uids`) representing on-chain attestations.
+
+#### Example Usage
+
+```solidity
+(uint256[] memory fids, bytes32[] memory uids) = farcasterResolver.getWalletAttestations(wallet);
+```
+
+This call returns all Farcaster IDs that the specified wallet address has verified, along with their unique attestation identifiers.
