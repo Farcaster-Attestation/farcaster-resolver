@@ -50,3 +50,57 @@ npx hardhat test
 ```
 npm run coverage
 ```
+
+## Attesting Wallet Verification
+
+The first step in verifying a wallet on Farcaster is to bring its verification on-chain. Anyone can attest a wallet’s verification because it relies on a signed verification message broadcast over the Farcaster Hub.
+
+> **Note**  
+> Attestation is usually performed automatically by a relayer, though there may be a fallback to a user-driven process if the relayer fails.
+
+You will need to retrieve your verification message from the Farcaster Hub. Then, call the FarcasterResolver contract to either:
+- **attest** a new wallet verification, or
+- **revoke** an existing onchain verification.
+
+```solidity
+function attest(
+    address recipient,
+    uint256 fid,
+    bytes32 publicKey,
+    uint256 verificationMethod,
+    bytes memory signature
+) public returns (bytes32)
+
+function revoke(
+    address recipient,
+    uint256 fid,
+    bytes32 publicKey,
+    uint256 verificationMethod,
+    bytes memory signature
+) public returns (bool)
+```
+
+Parameters for `attest` and `revoke`:
+1. **recipient** – The wallet address that is being verified
+2. **fid** – The Farcaster FID (Farcaster ID) of the verifying user
+3. **publicKey** – The Farcaster public key used to sign the wallet verification message (details below)
+4. **verificationMethod** - 1 (Onchain) or 2 (Optimistic) (details below)
+5. **signature** – The encoded verification message and signature (details below)
+
+### Verification Methods
+
+There are two verification methods: Onchain (1) and Optimistic (2)
+
+1. **Onchain Verification**  
+   - **Permissionless:** Anyone can submit an on-chain verification. The signature and message are being verified fully on-chain in the smart contract.
+   - **Pros:** Verification is instantaneous once the transaction is confirmed.  
+   - **Cons:** Higher gas costs.
+
+2. **Optimistic Verification**  
+   - **Trust-but-Verify:** A whitelisted relayer submits the verification, which can be challenged by anyone within one day if it’s malicious.  
+   - **Pros:** Lower gas costs compared to on-chain verification.  
+   - **Cons:** Relies on a whitelisted relayer and includes a one-day challenge period; not open to public submissions.
+
+### Getting publicKey and signature (verification message)
+
+TODO
