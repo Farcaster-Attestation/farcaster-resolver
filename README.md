@@ -307,8 +307,6 @@ Permissions are represented as bit flags. Combine them with bitwise OR (`|`) to 
 | `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN`    | `1 << 5`  | Can add new superadmins / admins / members         |
 | `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN` | `1 << 6`  | Can remove new superadmins / admins / members      |
 
-### Member vs Admin vs Superadmin
-
 ### Member vs. Admin vs. Superadmin
 
 #### Member
