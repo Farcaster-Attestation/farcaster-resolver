@@ -286,3 +286,93 @@ Below are some common configurations for **FarcasterResolverStandardConsumer**.
   - `_useRefBody = false`
   - `_fidOffset = 0`
   - `_refOffset = 0`
+ 
+## Membership System
+
+**FarcasterMembership** is a contract that manages membership and permission structures for on-chain Farcaster attestations. It enables features such as adding/removing members, and settings members’ permissions to reference an attestation.
+
+By using **FarcasterMembership**, organizations can manage membership permissions and roles on-chain without needing a separate identity system. The contract leverages EAS attestations and Farcaster’s verification flow to streamline membership operations.
+
+### Permissions
+
+Permissions are represented as bit flags. Combine them with bitwise OR (`|`) to grant multiple permissions:
+
+| Permission                          | Flag Value | Description                          |
+|------------------------------------|-----------|--------------------------------------|
+| `FARCASTER_MEMBERSHIP_CAN_ATTEST`  | `1 << 0`  | Can create attestations              |
+| `FARCASTER_MEMBERSHIP_CAN_REVOKE`  | `1 << 1`  | Can revoke attestations              |
+| `FARCASTER_MEMBERSHIP_CAN_LEAVE`   | `1 << 2`  | Can remove oneself from the group    |
+| `FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER`   | `1 << 3`  | Can add new members                  |
+| `FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER`| `1 << 4`  | Can remove other members             |
+| `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN`    | `1 << 5`  | Can add new admins / members         |
+| `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN` | `1 << 6`  | Can remove new admins / members      |
+
+### Member vs Admin
+
+### Workflow Summary
+
+1. **InitMembership:**  
+   - The first time `setMember` or `removeMember` is called on a new attestation `attUid`, the contract inspects the underlying attestation to locate the primary FID.  
+   - That primary FID is granted all permissions by default.  
+
+2. **Adding a Member:**  
+   ```solidity
+   function setMember(
+       bytes32 attUid,
+       uint256 adminFid,
+       uint256 memberFid,
+       uint256 permissions
+   ) external;
+   ```
+   - **Parameters:**
+       - `attUid`: The attestation UID for this membership group.
+       - `adminFid`: The Farcaster ID of the admin performing this action.
+       - `memberFid`: The Farcaster ID of the new or existing member whose permissions are being set.
+       - `permissions`: A bitmask of permissions to grant to memberFid.
+   - **Workflow:**
+       1. The contract checks if `adminFid` is verified by calling `verifier.isVerified(adminFid, msg.sender)`.
+       2. If `adminFid` has the appropriate permissions (`CAN_ADD_MEMBER` or `CAN_ADD_ADMIN`), the contract updates the membership details in storage.
+       3. Internally, an EAS attestation referencing `attUid` is also created or updated, recording these membership permissions on-chain.
+
+3. **Removing a Member:**  
+   ```solidity
+   function removeMember(
+       bytes32 attUid,
+       uint256 adminFid,
+       uint256 memberFid
+   ) external;
+   ```
+   - **Parameters**:
+     - **`attUid`**: The attestation UID for this membership group. 
+     - **`adminFid`**: The Farcaster ID of the admin (or member themselves) performing this removal.  
+     - **`memberFid`**: The Farcaster ID of the member to be removed.
+     - If a member is leaving on his own, enter the same `adminFid` = `memberFid`
+   - **Workflow**:
+     1. The contract verifies that `adminFid` is linked to `msg.sender`.  
+     2. Checks if `adminFid` has the necessary permissions (`CAN_REMOVE_MEMBER` or `CAN_REMOVE_ADMIN`). If removing oneself, checks for `CAN_LEAVE`.  
+     3. Revokes the internal EAS attestation linked to `memberFid`. This effectively removes `memberFid` from the membership.
+
+5. **Permission Checks:**  
+   ```solidity
+   function verifyMember(bytes32 attUid, uint256 fid, uint256 permissions) external returns(bool);
+   ```
+   - Call `verifyMember` to confirm that a given `fid` has the specified `permissions` in the membership.  
+   - Can be used to gate other on-chain logic.
+
+### Example Use Case
+
+1. **Organization Onboarding:**  
+   - A DAO or group on Farcaster sets up a membership attestation (`attUid`).  
+   - The contract reads the primary FID from the attestation and grants it administrative permissions.  
+
+2. **Admin Adds Team Members:**  
+   - The admin calls `setMember(attUid, adminFid, newMemberFid, desiredPermissions)`.  
+   - As long as the admin has the `CAN_ADD_MEMBER` or `CAN_ADD_ADMIN` permission, and desired permission isn't exceeded his permission level, the function succeeds.  
+
+3. **Member Performs Actions:**  
+   - The new member can create or revoke attestations, subject to their permissions.  
+   - Third-party contracts can call `verifyMember(attUid, memberFid, requiredPermission)` before accepting an action (e.g., revoking another member).
+
+4. **Removing Members:**  
+   - If a member leaves, `removeMember(attUid, adminFid, memberFid)` is called.  
+   - If the member has `CAN_LEAVE` and they’re removing themselves, they can call the same function with their own FID.  
