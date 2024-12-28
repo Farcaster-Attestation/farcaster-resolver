@@ -212,12 +212,77 @@ constructor(
 ```
 
 #### Constructor Arguments
-- **_eas**: The address of the deployed [Ethereum Attestation Service (EAS)](https://github.com/ethereum-attestation-service) contract.  
-- **_resolver**: A contract implementing `IFarcasterVerification` (e.g., verifying that a wallet corresponds to an FID).  
-- **_membership**: A contract implementing `IFarcasterMembership` for membership and permission checks.  
+- **_eas**: [Ethereum Attestation Service (EAS)](https://github.com/ethereum-attestation-service) contract address.  
+- **_resolver**: `FarcasterResolverInterop` contract address.
+- **_membership**: `FarcasterMembership` contract address.
 - **_useRecipient**: If `true`, uses the attestation’s recipient for wallet verification; otherwise, uses the attester.  
 - **_useRefFid**: If `true`, retrieves the FID from a referenced attestation’s data rather than from the primary attestation’s data.  
 - **_useRefCheck**: If `true`, performs membership and permission checks on the referenced attestation.  
 - **_useRefBody**: If `true`, reads `refUID` from the attestation body; otherwise, reads `Attestation.refUID`.  
 - **_fidOffset**: The byte offset in `Attestation.data` where the FID is located (when `_useRefFid` is `false`).  
 - **_refOffset**: The byte offset in `Attestation.data` where the `refUID` is located (when `_useRefBody` is `true`).
+
+### Common Scenarios
+
+Below are some common configurations for **FarcasterResolverStandardConsumer**.
+
+#### 1. Verifying the Attester Against the FID in the First Field
+- **Schema:** `(bytes32 fid, ...)`
+- **Settings:**
+  - `_useRecipient = false`
+  - `_useRefFid = false`
+  - `_useRefCheck = false`
+  - `_useRefBody = false`
+  - `_fidOffset = 0`
+  - `_refOffset = 0`
+
+#### 2. Verifying the Recipient Against the FID in the Second Field
+- **Schema:** `(bytes32 a, bytes32 fid, ...)`
+- **Settings:**
+  - `_useRecipient = true`
+  - `_useRefFid = false`
+  - `_useRefCheck = false`
+  - `_useRefBody = false`
+  - `_fidOffset = 32`
+  - `_refOffset = 0`
+
+#### 3. Verifying the Attester Against the FID from a Referenced Attestation
+- **Referenced Attestation:** Must implement a Farcaster resolver consumer
+- **Settings:**
+  - `_useRecipient = false`
+  - `_useRefFid = true`
+  - `_useRefCheck = false`
+  - `_useRefBody = false`
+  - `_fidOffset = 0`
+  - `_refOffset = 0`
+
+#### 4. Verifying the Attester Against the FID from a Referenced Attestation in Attestation Data
+- **Schema:** `(bytes32 refUID, ...)`
+- **Settings:**
+  - `_useRecipient = false`
+  - `_useRefFid = true`
+  - `_useRefCheck = false`
+  - `_useRefBody = true`
+  - `_fidOffset = 0`
+  - `_refOffset = 0`
+
+#### 5. Verifying the Attester Against the FID from a Referenced Attestation in the Second Field
+- **Schema:** `(bytes32 a, bytes32 refUID, ...)`
+- **Settings:**
+  - `_useRecipient = false`
+  - `_useRefFid = true`
+  - `_useRefCheck = false`
+  - `_useRefBody = true`
+  - `_fidOffset = 0`
+  - `_refOffset = 32`
+
+#### 6. Verifying the Attester’s FID and Checking Membership Permissions
+- **Schema:** `(bytes32 fid, ...)`
+- **Referenced Attestation:** Must implement a Farcaster resolver consumer
+- **Settings:**
+  - `_useRecipient = false`
+  - `_useRefFid = false`
+  - `_useRefCheck = true`
+  - `_useRefBody = false`
+  - `_fidOffset = 0`
+  - `_refOffset = 0`
