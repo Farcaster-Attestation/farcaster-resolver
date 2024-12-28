@@ -304,10 +304,25 @@ Permissions are represented as bit flags. Combine them with bitwise OR (`|`) to 
 | `FARCASTER_MEMBERSHIP_CAN_LEAVE`   | `1 << 2`  | Can remove oneself from the group    |
 | `FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER`   | `1 << 3`  | Can add new members                  |
 | `FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER`| `1 << 4`  | Can remove other members             |
-| `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN`    | `1 << 5`  | Can add new admins / members         |
-| `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN` | `1 << 6`  | Can remove new admins / members      |
+| `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN`    | `1 << 5`  | Can add new superadmins / admins / members         |
+| `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN` | `1 << 6`  | Can remove new superadmins / admins / members      |
 
-### Member vs Admin
+### Member vs Admin vs Superadmin
+
+### Member vs. Admin vs. Superadmin
+
+#### Member
+- A **Member** lacks any add/remove or admin-related permissions. Specifically, they do **not** have `FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER`, `FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER`, `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN`, or `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN`.
+- Members can only perform the actions (e.g., attest, revoke) granted to them by an admin.
+
+#### Admin
+- An **Admin** can add or remove **members** but cannot promote or remove other admins or superadmins. They possess `FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER` and `FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER` but **do not** have `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN` or `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN`.
+- Admins inherit all member permissions, including attesting, revoking, and leaving. They can also promote themselves to any membership-level permission (attest/revoke/leave).
+
+#### Superadmin
+- A **Superadmin** can add or remove **anyone**, including other admins and superadmins. They have `FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN` and `FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN`.
+- Superadmins inherit all admin permissions and can manage every membership level. They can remove other superadmins, so this role should be assigned with caution.
+- Although a superadmin can revoke the original attester’s permissions, the original attester automatically regains them if all superadmins, admins, and members are removed.
 
 ### Workflow Summary
 
