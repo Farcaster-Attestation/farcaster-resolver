@@ -1,11 +1,11 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "viem";
-import FarcasterResolverModule from "./FarcasterResolver"
+import FarcasterResolverInteropModule from "./FarcasterResolverInterop";
 
 const FarcasterResolverSimpleConsumerModule = buildModule("FarcasterResolverSimpleConsumerModule", (m) => {
-  const { resolver, eas } = m.useModule(FarcasterResolverModule)
+  const { resolver, interop, eas } = m.useModule(FarcasterResolverInteropModule)
   
-  const simpleConsumer = m.contract("FarcasterResolverSimpleConsumer", [eas, resolver], {});
+  const simpleConsumer = m.contract("FarcasterResolverSimpleConsumer", [eas, interop], {});
 
   return { simpleConsumer, resolver };
 });

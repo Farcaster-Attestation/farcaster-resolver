@@ -1,11 +1,11 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import { parseEther } from "viem";
-import FarcasterResolverModule from "./FarcasterResolver"
+import FarcasterResolverInteropModule from "./FarcasterResolverInterop";
 
 const FarcasterMembershipModule = buildModule("FarcasterMembershipModule", (m) => {
-  const { resolver, eas } = m.useModule(FarcasterResolverModule)
+  const { resolver, interop, eas } = m.useModule(FarcasterResolverInteropModule)
 
-  const membership = m.contract("FarcasterMembership", [eas, resolver], {});
+  const membership = m.contract("FarcasterMembership", [eas, interop], {});
 
   return { membership };
 });
