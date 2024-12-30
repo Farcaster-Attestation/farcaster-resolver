@@ -16,7 +16,9 @@ Issuing attestations through a verified Farcaster wallet on the Superchain
 - **FarcasterResolverConsumer** - Abstract contract template for implementing resolvers requiring Farcaster verification.  
 - **FarcasterResolverSimpleConsumer** - Simple resolver for schemas allowing only attestations from Farcaster-verified wallets.  
 - **FarcasterResolverStandardConsumer** - Customizable resolver for schemas needing complex verification, such as reference and membership validation.  
-- **FarcasterMembership** - Membership system enabling attestation owners to invite other Farcaster users to reference the attestation.  
+- **FarcasterMembership** - Membership system enabling attestation owners to invite other Farcaster users to reference the attestation.
+
+*Note: FcVerificationDecoder, FcMessageVerification and their dependencies are on a separated repository: https://github.com/Farcaster-Attestation/farcaster-decoder*
 
 ## Building the project
  

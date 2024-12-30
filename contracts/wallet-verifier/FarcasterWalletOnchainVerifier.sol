@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 import "./IFarcasterWalletVerifier.sol";
-import "@farcaster-attestation/farcaster-solidity/contracts/farcaster/FcMessageVerification.sol";
-import "@farcaster-attestation/farcaster-solidity/contracts/farcaster/FcMessageDecoder.sol";
+import "@farcaster-attestation/farcaster-decoder/contracts/farcaster/FcMessageVerification.sol";
+import "@farcaster-attestation/farcaster-decoder/contracts/farcaster/FcMessageDecoder.sol";
 
 /**
  * @title FarcasterWalletOnchainVerifier

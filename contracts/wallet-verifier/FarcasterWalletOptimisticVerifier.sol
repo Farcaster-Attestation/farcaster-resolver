@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IFarcasterWalletVerifier} from "./IFarcasterWalletVerifier.sol";
 import {IFarcasterPublicKeyVerifier} from "../public-key-verifier/IFarcasterPublicKeyVerifier.sol";
-import {MessageType} from "@farcaster-attestation/farcaster-solidity/contracts/protobufs/message.proto.sol";
+import {MessageType} from "@farcaster-attestation/farcaster-decoder/contracts/protobufs/message.proto.sol";
 
 /**
  * @title FarcasterWalletOptimisticVerifier
