@@ -105,7 +105,67 @@ There are two verification methods: Onchain (1) and Optimistic (2)
 
 ### Getting publicKey and signature (verification message)
 
-TODO
+You can get verification messages of any FID by querying from the Farcaster Hub: https://docs.farcaster.xyz/reference/hubble/httpapi/verification
+
+```
+curl https://nemes.farcaster.xyz:2281/v1/verificationsByFid?fid=328679
+```
+
+Response:
+
+```json
+{
+  "messages":[
+    {
+      "data":{
+        "type":"MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS",
+        "fid":328679,
+        "timestamp":100412508,
+        "network":"FARCASTER_NETWORK_MAINNET",
+        "verificationAddAddressBody":{
+          "address":"0xf01dd015bc442d872275a79b9cae84a6ff9b2a27",
+          "claimSignature":"IsbQTvpf5U1v31NcLHuJS6UeThEQLx1cyVVr5lZ0w7UN2TDKzVdyx6qpKdjwnTmjJ/xfG6s0oNbcNB2PlG+FFhw=",
+          "blockHash":"0x39dfd535c2173c551c4ed55dbb2d52a07951cd68852547509ce066720d251473",
+          "verificationType":0,
+          "chainId":0,
+          "protocol":"PROTOCOL_ETHEREUM",
+          "ethSignature":"IsbQTvpf5U1v31NcLHuJS6UeThEQLx1cyVVr5lZ0w7UN2TDKzVdyx6qpKdjwnTmjJ/xfG6s0oNbcNB2PlG+FFhw="
+        },
+        "verificationAddEthAddressBody":{
+          "address":"0xf01dd015bc442d872275a79b9cae84a6ff9b2a27",
+          "claimSignature":"IsbQTvpf5U1v31NcLHuJS6UeThEQLx1cyVVr5lZ0w7UN2TDKzVdyx6qpKdjwnTmjJ/xfG6s0oNbcNB2PlG+FFhw=",
+          "blockHash":"0x39dfd535c2173c551c4ed55dbb2d52a07951cd68852547509ce066720d251473",
+          "verificationType":0,
+          "chainId":0,
+          "protocol":"PROTOCOL_ETHEREUM",
+          "ethSignature":"IsbQTvpf5U1v31NcLHuJS6UeThEQLx1cyVVr5lZ0w7UN2TDKzVdyx6qpKdjwnTmjJ/xfG6s0oNbcNB2PlG+FFhw="
+        }
+      },
+      "hash":"0x4576a545b9ddda33e3629e84ae86f8b904c106d5",
+      "hashScheme":"HASH_SCHEME_BLAKE3",
+      "signature":"j2EmRG5mjZNzXgFfdNphfR+6/9FHHDzV9ZFGLTVuOJBrgK/fWt7L6dyMdCOyqig6M3LbHCXDPTL+McDFQcOGDA==",
+      "signatureScheme":"SIGNATURE_SCHEME_ED25519",
+      "signer":"0xbb77ee11e6651a87e4537d80eca20ee9036b0260eb77150065b2c02148f9603a"
+    },
+    ...
+  ]
+}
+```
+
+However, we can only get verification add message by this method, not verification remove
+
+With this response, let `message = messages[i]`, we have
+* `publicKey` = `message.signer`
+* `signature` = `abi.encode(r,s,messageData)` of types `(bytes32, bytes32, bytes)`
+    - `r` = `message.signature.subarray(0, 32)`
+    - `s` = `message.signature.subarray(32)`
+    - `messageData` = `MessageData.encode(message.data).finish()`
+ 
+Please look at [FarcasterWalletVerifier.ts unit test](./test/FarcasterWalletVerifier.ts) for additional implementation examples.
+
+### How to verify your wallet address with your FID
+
+Go to https://warpcast.com/~/settings/verified-addresses and verify your address
 
 ## Querying Wallet Verification Data
 
