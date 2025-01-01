@@ -66,6 +66,9 @@ contract FarcasterResolverInterop is IFarcasterResolver {
     // Mapping: fid => (key => wallet)
     mapping(uint256 => EnumerableMap.UintToAddressMap) internal localFidAttestations;
 
+    // Mapping: key => bool to check if fid <-> wallet is verified
+    mapping(bytes32 => bool) internal _isVerified;
+
     // ------------------------------------------------------------------------
     // MESSENGER
     // ------------------------------------------------------------------------
@@ -180,6 +183,7 @@ contract FarcasterResolverInterop is IFarcasterResolver {
         // Store
         localWalletAttestations[_recipient].set(uint256(key), _fid);
         localFidAttestations[_fid].set(uint256(key), _recipient);
+        _isVerified[key] = true;
 
         emit VerificationAttested(
             _fid,
@@ -200,6 +204,7 @@ contract FarcasterResolverInterop is IFarcasterResolver {
         // Remove from local store
         localWalletAttestations[_recipient].remove(uint256(key));
         localFidAttestations[_fid].remove(uint256(key));
+        _isVerified[key] = false;
 
         emit VerificationRevoked(
             _fid,
@@ -228,6 +233,7 @@ contract FarcasterResolverInterop is IFarcasterResolver {
             return sourceResolver.getAttestationUid(fid, wallet);
         } else {
             bytes32 key = computeKey(fid, wallet);
+            if (!_isVerified[key]) return bytes32(0);
             return key;
         }
     }

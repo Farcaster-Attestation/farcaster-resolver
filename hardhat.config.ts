@@ -36,6 +36,14 @@ const config: HardhatUserConfig = {
       url: process.env.RPC_TESTNET_URL!,
       accounts,
     },
+    supersim_op: {
+      url: 'http://127.0.0.1:9545',
+      accounts,
+    },
+    supersim_base: {
+      url: 'http://127.0.0.1:9546',
+      accounts,
+    },
   },
   etherscan: {
     apiKey: {
