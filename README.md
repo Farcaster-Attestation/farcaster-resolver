@@ -53,6 +53,24 @@ npx hardhat test
 npm run coverage
 ```
 
+### Deploying contracts on supersim
+
+Supersim is a lightweight tool designed to simulate the Superchain. It is primarily used to test the `FarcasterResolverInterop`. The following command launches forked OP and Base chains simultaneously and sets up an L2 <-> L2 cross-chain interoperability simulation:
+
+```
+supersim fork --chains op,base --interop.autorelay
+```
+
+After starting Supersim, run the following command to deploy the necessary contracts:
+
+```
+./deploy-supersim.sh
+```
+
+Note that the `FarcasterResolverExtended` is deployed using a deterministic deployment strategy, ensuring it is deployed to the same address across all chains.
+
+The first wallet in the test mnemonic (test junk) is designated as both the deployer and the admin of the contracts.
+
 ## Attesting Wallet Verification
 
 The first step in verifying a wallet on Farcaster is to bring its verification on-chain. Anyone can attest a wallet’s verification because it relies on a signed verification message broadcast over the Farcaster Hub.
