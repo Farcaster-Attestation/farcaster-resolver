@@ -56,13 +56,15 @@ contract FarcasterPublicKeyVerifier is
         uint256 fid,
         bytes32 publicKey
     ) external view returns (bool) {
+        if (keyExternal[fid][publicKey]) {
+            return true;
+        }
+
         IKeyRegistry.KeyData memory data = keyRegistry.keyDataOf(
             fid,
             abi.encodePacked(publicKey)
         );
-        return
-            (data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1) ||
-            keyExternal[fid][publicKey];
+        return (data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1);
     }
 
     /**
