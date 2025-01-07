@@ -9,7 +9,6 @@ import {IFarcasterVerification} from "./IFarcasterVerification.sol";
  * @notice Interface for Farcaster Resolver contract.
  */
 interface IFarcasterResolver is IFarcasterVerification {
-
     /**
      * @dev Emitted when a verification attestation is attested.
      * @param fid The Farcaster ID.
@@ -60,14 +59,19 @@ interface IFarcasterResolver is IFarcasterVerification {
      * @param wallet The wallet address.
      * @return The attestation UID.
      */
-    function getAttestationUid(uint256 fid, address wallet) external view returns (bytes32);
+    function getAttestationUid(
+        uint256 fid,
+        address wallet
+    ) external view returns (bytes32);
 
     /**
      * @notice Get the number of attestations and verified FIDs for a given wallet address.
      * @param wallet The wallet address.
      * @return The number of attestations.
      */
-    function walletAttestationsLength(address wallet) external view returns (uint256);
+    function walletAttestationsLength(
+        address wallet
+    ) external view returns (uint256);
 
     /**
      * @notice Get the attestations and verified FIDs for a given wallet address, starting from a specific index.

@@ -1,5 +1,6 @@
 {
-  "FarcasterResolverModule": {
-    "keyRegistry": "0x0000000000000000000000000000000000000000"
+  "FarcasterResolverExtendedModule": {
+    "resolverAddress": "0x53740150E93BB9dF2f265dA68ce8957Ee6A23A77",
+    "sourceChainId": 11155420
   }
 }

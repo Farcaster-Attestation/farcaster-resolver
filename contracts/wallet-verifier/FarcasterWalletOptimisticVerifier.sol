@@ -43,7 +43,7 @@ contract FarcasterWalletOptimisticVerifier is
     /// @notice Mapping of verification hash to the timestamp of verification.
     mapping(bytes32 => uint256) public verificationTimestamp;
 
-    modifier enoughDeposit {
+    modifier enoughDeposit() {
         if (address(this).balance < depositAmount) {
             revert NotEnoughDeposit(address(this).balance);
         }
@@ -70,12 +70,12 @@ contract FarcasterWalletOptimisticVerifier is
         challengingPeriod = _challengingPeriod;
         depositAmount = _depositAmount;
         challengeRewardAmount = _challengeRewardAmount;
-        
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(RELAYER_ROLE, admin);
     }
 
-    receive() payable external {}
+    receive() external payable {}
 
     /**
      * Disable a malicious relayer in an emergency by the security council.
@@ -249,8 +249,25 @@ contract FarcasterWalletOptimisticVerifier is
         bytes signature
     );
 
-    function challengeReward() internal view returns(uint256) {
-        return address(this).balance > challengeRewardAmount ? challengeRewardAmount : address(this).balance;
+    /**
+     * @notice Calculate the reward amount for a successful challenge
+     * @dev The reward is calculated based on the contract's balance and configured amounts:
+     *      - If balance > (deposit + reward), returns all excess balance plus the reward amount
+     *      - If balance > reward amount, returns the configured reward amount
+     *      - Otherwise returns the entire contract balance
+     * @return uint256 The reward amount in wei to be paid to the challenger
+     */
+    function challengeReward() internal view returns (uint256) {
+        if (address(this).balance > depositAmount + challengeRewardAmount) {
+            return
+                address(this).balance - depositAmount + challengeRewardAmount;
+        }
+
+        if (address(this).balance > challengeRewardAmount) {
+            return challengeRewardAmount;
+        }
+
+        return address(this).balance;
     }
 
     /**
@@ -291,7 +308,9 @@ contract FarcasterWalletOptimisticVerifier is
             verificationTimestamp[h] = 0;
 
             {
-                (bool success, ) = payable(msg.sender).call{value: challengeReward()}("");
+                (bool success, ) = payable(msg.sender).call{
+                    value: challengeReward()
+                }("");
                 require(success);
             }
 
@@ -344,7 +363,9 @@ contract FarcasterWalletOptimisticVerifier is
             verificationTimestamp[h] = 0;
 
             {
-                (bool success, ) = payable(msg.sender).call{value: challengeReward()}("");
+                (bool success, ) = payable(msg.sender).call{
+                    value: challengeReward()
+                }("");
                 require(success);
             }
 
@@ -372,14 +393,9 @@ contract FarcasterWalletOptimisticVerifier is
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) public view returns(bool) {
+    ) public view returns (bool) {
         try
-            onchainVerifier.verifyAdd(
-                fid,
-                verifyAddress,
-                publicKey,
-                signature
-            )
+            onchainVerifier.verifyAdd(fid, verifyAddress, publicKey, signature)
         returns (bool verified) {
             if (verified) {
                 return false;
@@ -401,7 +417,7 @@ contract FarcasterWalletOptimisticVerifier is
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) public view returns(bool) {
+    ) public view returns (bool) {
         try
             onchainVerifier.verifyRemove(
                 fid,

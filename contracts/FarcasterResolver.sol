@@ -188,7 +188,7 @@ contract FarcasterResolver is
     function onRevoke(
         Attestation calldata attestation,
         uint256 /*value*/
-    ) internal override view returns (bool) {
+    ) internal view override returns (bool) {
         if (
             attestation.attester != address(this) ||
             attestation.schema != schemaId

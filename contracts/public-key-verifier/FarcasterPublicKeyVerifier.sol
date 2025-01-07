@@ -6,13 +6,17 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./IFarcasterPublicKeyVerifier.sol";
 import "./IKeyRegistry.sol";
 
-contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessControl, Multicall {
+contract FarcasterPublicKeyVerifier is
+    IFarcasterPublicKeyVerifier,
+    AccessControl,
+    Multicall
+{
     /// @notice Role identifier for operator role (OptimismGovernor)
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /// @notice Role identifier for security role (Security Council)
-    bytes32 public constant SECURITY_ROLE = keccak256("SECURITY_ROLE"); 
-    
+    bytes32 public constant SECURITY_ROLE = keccak256("SECURITY_ROLE");
+
     /// @notice The Key Registry contract.
     IKeyRegistry public immutable keyRegistry;
 
@@ -52,8 +56,13 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
         uint256 fid,
         bytes32 publicKey
     ) external view returns (bool) {
-        IKeyRegistry.KeyData memory data = keyRegistry.keyDataOf(fid, abi.encodePacked(publicKey));
-        return (data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1) || keyExternal[fid][publicKey];
+        IKeyRegistry.KeyData memory data = keyRegistry.keyDataOf(
+            fid,
+            abi.encodePacked(publicKey)
+        );
+        return
+            (data.state == IKeyRegistry.KeyState.ADDED && data.keyType == 1) ||
+            keyExternal[fid][publicKey];
     }
 
     /**
@@ -61,7 +70,10 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
      * @param fid The Farcaster ID (FID) of the user.
      * @param publicKey The public key to be added.
      */
-    function addKey(uint256 fid, bytes32 publicKey) external onlyRole(OPERATOR_ROLE) {
+    function addKey(
+        uint256 fid,
+        bytes32 publicKey
+    ) external onlyRole(OPERATOR_ROLE) {
         keyExternal[fid][publicKey] = true;
         emit AddKey(fid, publicKey);
     }
@@ -71,12 +83,22 @@ contract FarcasterPublicKeyVerifier is IFarcasterPublicKeyVerifier, AccessContro
      * @param fid The Farcaster ID (FID) of the user.
      * @param publicKey The public key to be removed.
      */
-    function removeKey(uint256 fid, bytes32 publicKey) external onlyRole(OPERATOR_ROLE) {
+    function removeKey(
+        uint256 fid,
+        bytes32 publicKey
+    ) external onlyRole(OPERATOR_ROLE) {
         keyExternal[fid][publicKey] = false;
         emit RemoveKey(fid, publicKey);
     }
 
-    function blacklistOperator(address operator) external onlyRole(SECURITY_ROLE) {
+    /**
+     * @notice Blacklists an operator by revoking their OPERATOR_ROLE.
+     * @dev Can only be called by accounts with SECURITY_ROLE.
+     * @param operator The address of the operator to blacklist.
+     */
+    function blacklistOperator(
+        address operator
+    ) external onlyRole(SECURITY_ROLE) {
         _revokeRole(OPERATOR_ROLE, operator);
         emit BlacklistOperator(operator);
     }

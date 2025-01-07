@@ -7,14 +7,24 @@ import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contra
 import {IFarcasterVerification} from "../IFarcasterResolver.sol";
 import {IFarcasterResolverAttestationDecoder} from "./IFarcasterResolverAttestationDecoder.sol";
 
-// Assume first element of attestation body is fid and match against attester
+/**
+ * @title FarcasterResolverConsumer
+ * @notice Base contract for consuming and validating Farcaster attestations
+ * @dev Abstract contract that implements attestation decoding and validation logic
+ */
 abstract contract FarcasterResolverConsumer is
     SchemaResolver,
     IFarcasterResolverAttestationDecoder,
     IERC165
 {
+    /// @notice The Farcaster verification resolver contract
     IFarcasterVerification public immutable resolver;
 
+    /**
+     * @notice Constructs the consumer contract
+     * @param eas The Ethereum Attestation Service contract
+     * @param _resolver The Farcaster verification resolver contract
+     */
     constructor(
         IEAS eas,
         IFarcasterVerification _resolver
@@ -22,12 +32,29 @@ abstract contract FarcasterResolverConsumer is
         resolver = _resolver;
     }
 
+    /**
+     * @notice Decodes a Farcaster attestation to extract FID and wallet
+     * @param attestation The attestation to decode
+     * @param value The amount of ETH sent with the attestation
+     * @param isRevoke Whether this is a revocation
+     * @return fid The decoded Farcaster ID
+     * @return wallet The decoded wallet address
+     */
     function decodeFarcasterAttestation(
         Attestation calldata attestation,
         uint256 value,
         bool isRevoke
     ) public virtual returns (uint256 fid, address wallet);
 
+    /**
+     * @notice Validates a Farcaster attestation by checking if the FID and wallet are verified
+     * @param attestation The attestation to validate
+     * @param value The amount of ETH sent with the attestation
+     * @param isRevoke Whether this is a revocation
+     * @return valid Whether the attestation is valid
+     * @return fid The decoded Farcaster ID
+     * @return wallet The decoded wallet address
+     */
     function isValidAttestation(
         Attestation calldata attestation,
         uint256 value,
@@ -41,26 +68,38 @@ abstract contract FarcasterResolverConsumer is
         valid = resolver.isVerified(fid, wallet);
     }
 
-    // Assume first element of attestation body is fid and match against attester
+    /**
+     * @notice Validates an attestation during the attestation process
+     * @dev Assumes first element of attestation body is FID and matches against attester
+     * @param attestation The attestation to validate
+     * @param value The amount of ETH sent with the attestation
+     * @return valid Whether the attestation is valid
+     */
     function onAttest(
         Attestation calldata attestation,
         uint256 value
     ) internal virtual override returns (bool valid) {
-        (valid,,) = isValidAttestation(attestation, value, false);
+        (valid, , ) = isValidAttestation(attestation, value, false);
     }
 
-    // Assume first element of attestation body is fid and match against attester
+    /**
+     * @notice Validates an attestation during the revocation process
+     * @dev Assumes first element of attestation body is FID and matches against attester
+     * @param attestation The attestation to validate
+     * @param value The amount of ETH sent with the attestation
+     * @return valid Whether the attestation is valid
+     */
     function onRevoke(
         Attestation calldata attestation,
         uint256 value
     ) internal virtual override returns (bool valid) {
-        (valid,,) = isValidAttestation(attestation, value, true);
+        (valid, , ) = isValidAttestation(attestation, value, true);
     }
 
     /**
      * @notice Checks if the contract supports a specific interface
      * @param interfaceId The interface identifier, as specified in ERC-165
-     * @return `true` if the contract implements `interfaceId`
+     * @return bool `true` if the contract implements `interfaceId`
      */
     function supportsInterface(
         bytes4 interfaceId
