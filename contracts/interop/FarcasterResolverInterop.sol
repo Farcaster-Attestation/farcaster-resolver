@@ -131,13 +131,13 @@ contract FarcasterResolverInterop is IFarcasterResolver {
      * @param toChainId The destination chain ID
      * @param recipient The wallet address being synced
      * @param fid The Farcaster ID being synced
-     * @param isRevoke Whether this is a revocation (true) or attestation (false)
+     * @param isVerified Whether this is a revocation (true) or attestation (false)
      */
     event CrossChainSyncInitiated(
         uint256 indexed toChainId,
         address indexed recipient,
         uint256 indexed fid,
-        bool isRevoke
+        bool isVerified
     );
 
     /**
@@ -156,18 +156,18 @@ contract FarcasterResolverInterop is IFarcasterResolver {
         if (!isSourceChain) revert NotSourceChain();
         if (_toChainId == block.chainid) revert InvalidDestination();
 
-        bool isRevoke = sourceResolver.isVerified(_fid, _recipient);
+        bool _isAttest = sourceResolver.isVerified(_fid, _recipient);
 
         // Encode the function call
         bytes memory message = abi.encodeCall(
             this.receiveSync,
-            (_recipient, _fid, isRevoke)
+            (_recipient, _fid, _isAttest)
         );
 
         // Send
         messenger.sendMessage(_toChainId, address(this), message);
 
-        emit CrossChainSyncInitiated(_toChainId, _recipient, _fid, isRevoke);
+        emit CrossChainSyncInitiated(_toChainId, _recipient, _fid, _isAttest);
     }
 
     /**
@@ -175,21 +175,21 @@ contract FarcasterResolverInterop is IFarcasterResolver {
      *         Only callable via cross-domain messenger, from this same contract on origin chain.
      * @param _recipient The wallet address to sync
      * @param _fid The Farcaster ID to sync
-     * @param _isRevoke Whether this is a revocation (true) or attestation (false)
+     * @param _isAttest Whether this is an attestation (true) or revocation (false)
      */
     function receiveSync(
         address _recipient,
         uint256 _fid,
-        bool _isRevoke
+        bool _isAttest
     ) external onlyCrossDomainCallback {
         if (isSourceChain) {
             revert NotAllowedOnSourceChain();
         } else {
             // On other chains, store locally
-            if (_isRevoke) {
-                _localRevoke(_recipient, _fid);
-            } else {
+            if (_isAttest) {
                 _localAttest(_recipient, _fid);
+            } else {
+                _localRevoke(_recipient, _fid);
             }
         }
     }
