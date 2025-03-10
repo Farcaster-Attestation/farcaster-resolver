@@ -403,10 +403,10 @@
   resolved "https://registry.yarnpkg.com/@faker-js/faker/-/faker-7.6.0.tgz#9ea331766084288634a9247fcd8b84f16ff4ba07"
   integrity sha512-XK6BTq1NDMo9Xqw/YkYyGjSsg44fbNwYRx7QK2CuoQgyy+f1rrTDHoExVM5PsyXCtfl2vs2vVJ0MN0yN6LppRw==
 
-"@farcaster-attestation/farcaster-decoder@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@farcaster-attestation/farcaster-decoder/-/farcaster-decoder-2.2.0.tgz#f28eb5fb9c782a52951d48db60ae9ef17af3f5d5"
-  integrity sha512-s+esr01MRN1XCPBsJgJA/JlBRT/TcF/org78mCDxPR3yB0sw+TWKpnirkmmG1Ee3H7QzCWS7PdNlV5oqdefzlw==
+"@farcaster-attestation/farcaster-decoder@2.3.0":
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/@farcaster-attestation/farcaster-decoder/-/farcaster-decoder-2.3.0.tgz#169d6667ae3706e8de4b5599a0a0f54ba7786b5b"
+  integrity sha512-sJafqaVW3w1NLl9ooxwvX6as0JF58V/lgk0mJmv44bVfR3vc4DmGGhj2B9Dz9vPXpJjV5fnmx81Ew1gjLV+t0g==
   dependencies:
     "@farcaster/core" "^0.15.6"
     "@lazyledger/protobuf3-solidity-lib" "^0.6.0"

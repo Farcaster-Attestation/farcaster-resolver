@@ -61,6 +61,11 @@ contract FarcasterResolverInterop is IFarcasterResolver {
      */
     error NotSourceChain();
 
+    /**
+     * @dev Thrown if we try to call cross-chain functions on a smart contract wallet that is not enabled for interop.
+     */
+    error SmartContractWalletNotAllowed();
+
     // ------------------------------------------------------------------------
     // CONFIG
     // ------------------------------------------------------------------------
@@ -85,6 +90,9 @@ contract FarcasterResolverInterop is IFarcasterResolver {
 
     /// @dev Maps attestation keys to verification status
     mapping(bytes32 => bool) internal _isVerified;
+
+    /// @dev Enable interop for a smart contract wallet on a specific chain
+    mapping(address => mapping(uint256 => bool)) internal _enableInterop;
 
     // ------------------------------------------------------------------------
     // MESSENGER
@@ -155,7 +163,8 @@ contract FarcasterResolverInterop is IFarcasterResolver {
     ) external {
         if (!isSourceChain) revert NotSourceChain();
         if (_toChainId == block.chainid) revert InvalidDestination();
-
+        if (_recipient.code.length > 0 && !_enableInterop[_recipient][_toChainId]) revert SmartContractWalletNotAllowed();
+        
         bool _isAttest = sourceResolver.isVerified(_fid, _recipient);
 
         // Encode the function call
@@ -164,7 +173,7 @@ contract FarcasterResolverInterop is IFarcasterResolver {
             (_recipient, _fid, _isAttest)
         );
 
-        // Send
+        // Send cross-chain message
         messenger.sendMessage(_toChainId, address(this), message);
 
         emit CrossChainSyncInitiated(_toChainId, _recipient, _fid, _isAttest);
@@ -193,6 +202,23 @@ contract FarcasterResolverInterop is IFarcasterResolver {
             }
         }
     }
+
+    /**
+     * @notice Enable interop for a smart contract wallet on a specific chain
+     * @param wallet The wallet address
+     * @param chainId The chain ID
+     */
+    event InteropEnabled(address indexed wallet, uint256 indexed chainId);
+
+    /**
+     * @notice Enable interop for a smart contract wallet on a specific chain
+     * @param chainId The chain ID
+     */
+    function enableInterop(uint256 chainId) external {
+        _enableInterop[msg.sender][chainId] = true;
+        emit InteropEnabled(msg.sender, chainId);
+    }
+
 
     // ------------------------------------------------------------------------
     // LOCAL STORAGE METHODS (used only if !isSourceChain)

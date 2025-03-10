@@ -96,11 +96,6 @@ contract FarcasterResolver is
             return false;
         }
 
-        bytes32 attUid = uid[key];
-
-        walletAttestations[recipient].remove(uint256(attUid));
-        fidAttestations[fid].remove(uint256(attUid));
-
         if (
             verifyRemove(
                 fid,
@@ -110,6 +105,11 @@ contract FarcasterResolver is
                 signature
             )
         ) {
+            bytes32 attUid = uid[key];
+
+            walletAttestations[recipient].remove(uint256(attUid));
+            fidAttestations[fid].remove(uint256(attUid));
+
             _eas.revoke(
                 RevocationRequest({
                     schema: schemaId,

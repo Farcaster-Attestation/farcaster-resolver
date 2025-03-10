@@ -64,7 +64,7 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external pure returns (bool) {
+    ) external view returns (bool) {
         (bytes32 signature_r, bytes32 signature_s, bytes memory message) = abi
             .decode(signature, (bytes32, bytes32, bytes));
 
@@ -81,14 +81,6 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
             memory message_data = FcVerificationDecoder
                 .decodeVerificationRemove(message);
 
-        address target = bytesToAddress(
-            message_data.verification_remove_body.address_
-        );
-
-        if (target != verifyAddress || message_data.fid != fid) {
-            return false;
-        }
-
-        return true;
+        return FcMessageVerification.verifyRemove(message_data, verifyAddress, fid);
     }
 }

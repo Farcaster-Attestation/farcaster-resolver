@@ -172,7 +172,6 @@ contract FarcasterMembership is
                     permissions =
                         permissions |
                         FARCASTER_MEMBERSHIP_CAN_REVOKE |
-                        FARCASTER_MEMBERSHIP_CAN_LEAVE |
                         FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER |
                         FARCASTER_MEMBERSHIP_CAN_REMOVE_ADMIN;
                 }
@@ -183,6 +182,22 @@ contract FarcasterMembership is
             }
 
             members[attUid].set(fid, permissions);
+
+            bytes32 uid = _eas.attest(
+                AttestationRequest({
+                    schema: schemaId,
+                    data: AttestationRequestData({
+                        recipient: address(0),
+                        expirationTime: 0,
+                        revocable: true,
+                        refUID: attUid,
+                        data: abi.encode(fid, fid, permissions),
+                        value: 0
+                    })
+                })
+            );
+            attestations[attUid][fid] = uid;
+
             emit SetMember(attUid, 0, fid, permissions);
         }
     }
@@ -239,17 +254,26 @@ contract FarcasterMembership is
         uint256 memberFid,
         uint256 permissions
     ) public virtual {
+        if (permissions == 0) {
+            return removeMember(attUid, adminFid, memberFid);
+        }
+
         if (!verifier.isVerified(adminFid, msg.sender)) {
             revert PermissionDenied();
         }
 
         initMember(attUid);
-        _revokeAttestation(attUid, memberFid);
 
         (bool adminJoined, uint256 adminPermissions) = getMember(
             attUid,
             adminFid
         );
+        (, uint256 memberPermissions) = getMember(
+            attUid,
+            memberFid
+        );
+
+        _revokeAttestation(attUid, memberFid);
 
         if (
             !adminJoined ||
@@ -265,13 +289,34 @@ contract FarcasterMembership is
             revert PermissionDenied();
         }
 
-        if (
-            !hasPermission(
-                adminPermissions,
-                FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN
-            ) && permissions >= 8
-        ) {
-            revert PermissionDenied();
+        if (adminFid != memberFid) {
+            if (
+                !hasPermission(
+                    adminPermissions,
+                    FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN
+                ) && permissions >= 8
+            ) {
+                revert PermissionDenied();
+            }
+
+            if (
+                memberPermissions >= 8 &&
+                !hasPermission(
+                    adminPermissions,
+                    FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN
+                )
+            ) {
+                revert PermissionDenied();
+            }
+        } else {
+            if (
+                !hasPermission(
+                    adminPermissions,
+                    FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN
+                ) && permissions >= 32
+            ) {
+                revert PermissionDenied();
+            }
         }
 
         members[attUid].set(memberFid, permissions);
@@ -280,7 +325,7 @@ contract FarcasterMembership is
             AttestationRequest({
                 schema: schemaId,
                 data: AttestationRequestData({
-                    recipient: msg.sender,
+                    recipient: address(0),
                     expirationTime: 0,
                     revocable: true,
                     refUID: attUid,
@@ -322,13 +367,6 @@ contract FarcasterMembership is
         );
 
         if (!adminJoined || !memberJoined) {
-            revert PermissionDenied();
-        }
-
-        if (
-            adminFid == memberFid &&
-            !hasPermission(adminPermissions, FARCASTER_MEMBERSHIP_CAN_LEAVE)
-        ) {
             revert PermissionDenied();
         }
 

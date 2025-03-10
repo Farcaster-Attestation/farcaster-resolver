@@ -18,6 +18,9 @@ contract FarcasterWalletOptimisticVerifier is
     error InvalidPublicKey(uint256 fid, bytes32 publicKey);
     error ChallengeFailed();
     error NotEnoughDeposit(uint256 balance);
+    error Disabled();
+    error InsufficientGas();
+    error SmartContractWalletNotAllowed();
 
     /// @notice Role identifier for relayer role
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
@@ -37,13 +40,17 @@ contract FarcasterWalletOptimisticVerifier is
     /// @notice The ETH amount that needed for security deposit.
     uint256 public immutable depositAmount;
 
-    /// @notice The ETH amount that is rewarded to the challenger on each challenge.
-    uint256 public immutable challengeRewardAmount;
-
     /// @notice Mapping of verification hash to the timestamp of verification.
     mapping(bytes32 => uint256) public verificationTimestamp;
 
+    /// @notice A flag to indicate if the verifier is disabled.
+    bool public disabled;
+
     modifier enoughDeposit() {
+        if (disabled) {
+            revert Disabled();
+        }
+
         if (address(this).balance < depositAmount) {
             revert NotEnoughDeposit(address(this).balance);
         }
@@ -61,7 +68,6 @@ contract FarcasterWalletOptimisticVerifier is
         IFarcasterPublicKeyVerifier pubKeyVerifier,
         uint256 _challengingPeriod,
         uint256 _depositAmount,
-        uint256 _challengeRewardAmount,
         address admin
     ) payable {
         onchainVerifier = verifier;
@@ -69,7 +75,6 @@ contract FarcasterWalletOptimisticVerifier is
 
         challengingPeriod = _challengingPeriod;
         depositAmount = _depositAmount;
-        challengeRewardAmount = _challengeRewardAmount;
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(RELAYER_ROLE, admin);
@@ -154,6 +159,10 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public enoughDeposit onlyRole(RELAYER_ROLE) {
+        if (verifyAddress.code.length > 0) {
+            revert SmartContractWalletNotAllowed();
+        }
+
         bool publicKeyVerified = publicKeyVerifier.verifyPublicKey(
             fid,
             publicKey
@@ -251,22 +260,10 @@ contract FarcasterWalletOptimisticVerifier is
 
     /**
      * @notice Calculate the reward amount for a successful challenge
-     * @dev The reward is calculated based on the contract's balance and configured amounts:
-     *      - If balance > (deposit + reward), returns all excess balance plus the reward amount
-     *      - If balance > reward amount, returns the configured reward amount
-     *      - Otherwise returns the entire contract balance
+     * @dev The reward is the entire contract balance because the optimistic verifier will be disabled after one valid challenge
      * @return uint256 The reward amount in wei to be paid to the challenger
      */
     function challengeReward() internal view returns (uint256) {
-        if (address(this).balance > depositAmount + challengeRewardAmount) {
-            return
-                address(this).balance - depositAmount + challengeRewardAmount;
-        }
-
-        if (address(this).balance > challengeRewardAmount) {
-            return challengeRewardAmount;
-        }
-
         return address(this).balance;
     }
 
@@ -313,6 +310,8 @@ contract FarcasterWalletOptimisticVerifier is
                 }("");
                 require(success);
             }
+
+            disabled = true;
 
             emit Challenged(
                 MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
@@ -369,6 +368,8 @@ contract FarcasterWalletOptimisticVerifier is
                 require(success);
             }
 
+            disabled = true;
+
             emit Challenged(
                 MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
                 fid,
@@ -394,6 +395,11 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public view returns (bool) {
+        // Ensure minimum gas limit of ~4M for verification
+        if (gasleft() < 3_900_000) {
+            revert InsufficientGas();
+        }
+        
         try
             onchainVerifier.verifyAdd(fid, verifyAddress, publicKey, signature)
         returns (bool verified) {
@@ -411,6 +417,7 @@ contract FarcasterWalletOptimisticVerifier is
      * @param verifyAddress The address to be verified.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified.
+     * @return true if the attestation must be challenged, false if valid
      */
     function tryChallengeRemove(
         uint256 fid,
@@ -418,6 +425,11 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public view returns (bool) {
+        // Ensure minimum gas limit of 4M for verification
+        if (gasleft() < 3_900_000) {
+            revert InsufficientGas();
+        }
+
         try
             onchainVerifier.verifyRemove(
                 fid,

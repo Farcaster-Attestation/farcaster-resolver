@@ -753,6 +753,49 @@ describe("FarcasterWalletVerifier", function () {
       expect(challenged).to.equal(false);
     });
 
+    it("Valid signature can't be challenged if gas limit is too low", async function () {
+      const { walletOptimisticVerifier } = await loadFixture(deployFixture);
+      const message = REAL_VERIFICATION;
+      const messageBytes = MessageData.encode(REAL_VERIFICATION.data).finish();
+    
+      const encodedData = encodeAbiParameters(
+        parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+        [
+          toHexString(message.signature.subarray(0, 32)),
+          toHexString(message.signature.subarray(32)),
+          toHexString(messageBytes),
+        ]
+      );
+    
+      await walletOptimisticVerifier.write.submitVerification([
+        MessageType.VERIFICATION_ADD_ETH_ADDRESS,
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationAddAddressBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ]);
+    
+      let gasLimit = 1_000_000;
+      
+      await expect(
+        walletOptimisticVerifier.write.challengeAdd([
+          BigInt(message.data.fid),
+          toHexString(message.data.verificationAddAddressBody.address),
+          toHexString(message.signer),
+          encodedData
+        ], {gas: BigInt(gasLimit)}) // Uncomment the expect reject to see that the test fails because the transaction succeeds.
+      ).to.be.rejectedWith("ChallengeFailed()")
+    
+      const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
+        BigInt(message.data.fid),
+        toHexString(message.data.verificationAddAddressBody.address),
+        toHexString(message.signer),
+        encodedData,
+      ]);
+    
+      expect(challenged).to.equal(false);
+    });
+
     it("Invalid signature challenged", async function () {
       const [ wallet1 ] = await hre.viem.getWalletClients()
       const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);

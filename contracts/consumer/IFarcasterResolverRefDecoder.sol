@@ -2,13 +2,13 @@
 pragma solidity ^0.8.19;
 
 /**
- * @title IAttestationResolverRefDecoder
+ * @title IFarcasterResolverRefDecoder
  * @notice Interface for decoding reference UIDs from attestations
  * @dev Used by resolver contracts that need to decode reference attestation UIDs
  */
 import {Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 
-interface IAttestationResolverRefDecoder {
+interface IFarcasterResolverRefDecoder {
     /**
      * @notice Decodes a reference UID from an attestation
      * @param attestation The attestation containing the reference

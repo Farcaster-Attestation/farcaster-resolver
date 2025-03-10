@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
 import "../../IFarcasterMembership.sol";
 import "../FarcasterResolverConsumer.sol";
-import "../IAttestationResolverRefDecoder.sol";
+import "../IFarcasterResolverRefDecoder.sol";
 
 /**
  * @title FarcasterResolverStandardConsumer
@@ -13,7 +13,7 @@ import "../IAttestationResolverRefDecoder.sol";
  */
 contract FarcasterResolverStandardConsumer is
     FarcasterResolverConsumer,
-    IAttestationResolverRefDecoder
+    IFarcasterResolverRefDecoder
 {
     /// @notice The Farcaster membership contract
     IFarcasterMembership public immutable membership;
@@ -47,6 +47,9 @@ contract FarcasterResolverStandardConsumer is
 
     /// @notice Error thrown when attestation is revoked
     error AttestationRevoked(bytes32 uid);
+
+    /// @notice Error thrown when attestation is expired
+    error AttestationExpired(bytes32 uid);
 
     /**
      * @notice Constructs the standard consumer contract
@@ -121,17 +124,47 @@ contract FarcasterResolverStandardConsumer is
 
         if (attestation.revocationTime > 0)
             revert AttestationRevoked(attestation.uid);
+        if (attestation.expirationTime != 0 && attestation.expirationTime < block.timestamp)
+            revert AttestationExpired(attestation.uid);
 
-        if (
-            address(schema.resolver) == address(0) ||
-            !IERC165(address(schema.resolver)).supportsInterface(
+        bool supportsDecoderInterface = false;
+        if (address(schema.resolver) != address(0)) {
+            try IERC165(address(schema.resolver)).supportsInterface(
                 type(IFarcasterResolverAttestationDecoder).interfaceId
-            )
-        ) {
-            if (attestation.refUID == bytes32(0)) {
+            ) returns (bool s) {
+                supportsDecoderInterface = s;
+            } catch {
+                // If the call fails, assume it doesn't support the interface
+                supportsDecoderInterface = false;
+            }
+        }
+
+        if (!supportsDecoderInterface) {
+            bytes32 refUid;
+            
+            // Check if resolver supports IFarcasterResolverRefDecoder
+            if (address(schema.resolver) != address(0)) {
+                try IERC165(address(schema.resolver)).supportsInterface(
+                    type(IFarcasterResolverRefDecoder).interfaceId
+                ) returns (bool s) {
+                    if (s) {
+                        // Use decodeRefUid if resolver supports it
+                        refUid = IFarcasterResolverRefDecoder(address(schema.resolver))
+                            .decodeRefUid(attestation, value, isRevoke);
+                    } else {
+                        refUid = attestation.refUID;
+                    }
+                } catch {
+                    // If the call fails, fall back to attestation.refUID
+                    refUid = attestation.refUID;
+                }
+            } else {
+                refUid = attestation.refUID;
+            }
+            
+            if (refUid == bytes32(0)) {
                 revert MissingFarcasterResolverConsumer(attestation.uid);
             } else {
-                bytes32 refUid = attestation.refUID;
                 Attestation memory ref = _eas.getAttestation(refUid);
                 return decodeRecursiveRefUid(ref, value, isRevoke);
             }
@@ -249,6 +282,6 @@ contract FarcasterResolverStandardConsumer is
     ) public view virtual override returns (bool) {
         return
             super.supportsInterface(interfaceId) ||
-            interfaceId == type(IAttestationResolverRefDecoder).interfaceId;
+            interfaceId == type(IFarcasterResolverRefDecoder).interfaceId;
     }
 }

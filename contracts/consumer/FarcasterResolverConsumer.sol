@@ -65,7 +65,13 @@ abstract contract FarcasterResolverConsumer is
             value,
             isRevoke
         );
-        valid = resolver.isVerified(fid, wallet);
+
+        // Allow revocations from the attester, already checked in EAS
+        if (isRevoke) {
+            return (true, fid, wallet);
+        }
+
+        valid = (attestation.expirationTime == 0 || attestation.expirationTime >= block.timestamp) && resolver.isVerified(fid, wallet);
     }
 
     /**
@@ -106,6 +112,7 @@ abstract contract FarcasterResolverConsumer is
     ) public view virtual returns (bool) {
         return
             interfaceId ==
-            type(IFarcasterResolverAttestationDecoder).interfaceId;
+            type(IFarcasterResolverAttestationDecoder).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
     }
 }

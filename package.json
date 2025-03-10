@@ -30,7 +30,7 @@
     "viem": "^2.7.6"
   },
   "dependencies": {
-    "@farcaster-attestation/farcaster-decoder": "2.2.0",
+    "@farcaster-attestation/farcaster-decoder": "2.3.0",
     "@farcaster/core": "^0.14.19",
     "clones-with-immutable-args": "wighawag/clones-with-immutable-args",
     "dotenv": "^16.4.5"

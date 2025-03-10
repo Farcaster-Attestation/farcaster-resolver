@@ -8,7 +8,6 @@ import {IFarcasterVerification} from "./IFarcasterVerification.sol";
 // Combine flags with bitwise OR (|) to grant multiple permissions
 uint256 constant FARCASTER_MEMBERSHIP_CAN_ATTEST = 1 << 0; // Can create attestations
 uint256 constant FARCASTER_MEMBERSHIP_CAN_REVOKE = 1 << 1; // Can revoke attestations
-uint256 constant FARCASTER_MEMBERSHIP_CAN_LEAVE = 1 << 2; // Can remove oneself from the group
 uint256 constant FARCASTER_MEMBERSHIP_CAN_ADD_MEMBER = 1 << 3; // Can add new members
 uint256 constant FARCASTER_MEMBERSHIP_CAN_REMOVE_MEMBER = 1 << 4; // Can remove other members
 uint256 constant FARCASTER_MEMBERSHIP_CAN_ADD_ADMIN = 1 << 5; // Can add new superadmins/admins/members
