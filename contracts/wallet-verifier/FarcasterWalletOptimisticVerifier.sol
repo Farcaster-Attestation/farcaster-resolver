@@ -43,6 +43,9 @@ contract FarcasterWalletOptimisticVerifier is
     /// @notice Mapping of verification hash to the timestamp of verification.
     mapping(bytes32 => uint256) public verificationTimestamp;
 
+    /// @notice Mapping of verification hash to the message timestamp.
+    mapping(bytes32 => uint256) public messageTimestamp;
+
     /// @notice A flag to indicate if the verifier is disabled.
     bool public disabled;
 
@@ -141,6 +144,7 @@ contract FarcasterWalletOptimisticVerifier is
         address indexed verifyAddress,
         bytes32 publicKey,
         bytes32 hash,
+        uint256 timestamp,
         bytes signature
     );
 
@@ -157,33 +161,38 @@ contract FarcasterWalletOptimisticVerifier is
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
+        uint256 timestamp,
         bytes memory signature
     ) public enoughDeposit onlyRole(RELAYER_ROLE) {
-        if (verifyAddress.code.length > 0) {
-            revert SmartContractWalletNotAllowed();
-        }
-
-        bool publicKeyVerified = publicKeyVerifier.verifyPublicKey(
-            fid,
-            publicKey
-        );
-
-        if (!publicKeyVerified) {
-            revert InvalidPublicKey(fid, publicKey);
-        }
-
         bytes32 h = hash(messageType, fid, verifyAddress, publicKey, signature);
 
-        verificationTimestamp[h] = block.timestamp;
+        if (verificationTimestamp[h] == 0) {
+            if (verifyAddress.code.length > 0) {
+                revert SmartContractWalletNotAllowed();
+            }
 
-        emit SubmitVerification(
-            messageType,
-            fid,
-            verifyAddress,
-            publicKey,
-            h,
-            signature
-        );
+            bool publicKeyVerified = publicKeyVerifier.verifyPublicKey(
+                fid,
+                publicKey
+            );
+
+            if (!publicKeyVerified) {
+                revert InvalidPublicKey(fid, publicKey);
+            }
+
+            verificationTimestamp[h] = block.timestamp;
+            messageTimestamp[h] = timestamp;
+
+            emit SubmitVerification(
+                messageType,
+                fid,
+                verifyAddress,
+                publicKey,
+                h,
+                timestamp,
+                signature
+            );
+        }
     }
 
     /**
@@ -192,14 +201,14 @@ contract FarcasterWalletOptimisticVerifier is
      * @param verifyAddress The address to be verified.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified, encoded as (r, s, message).
-     * @return bool indicating whether the verification was successful.
+     * @return uint256 indicating timestamp of the verification or 0 if the verification is not valid.
      */
     function verifyAdd(
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view enoughDeposit returns (bool) {
+    ) external view enoughDeposit returns (uint256) {
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
             fid,
@@ -208,9 +217,14 @@ contract FarcasterWalletOptimisticVerifier is
             signature
         );
 
-        return
+        if (
             verificationTimestamp[h] > 0 &&
-            block.timestamp >= verificationTimestamp[h] + challengingPeriod;
+            block.timestamp >= verificationTimestamp[h] + challengingPeriod
+        ) {
+            return messageTimestamp[h];
+        }
+
+        return 0;
     }
 
     /**
@@ -219,14 +233,14 @@ contract FarcasterWalletOptimisticVerifier is
      * @param verifyAddress The address to be removed.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified, encoded as (r, s, message).
-     * @return bool indicating whether the verification was successful.
+     * @return uint256 indicating timestamp of the verification or 0 if the verification is not valid.
      */
     function verifyRemove(
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view enoughDeposit returns (bool) {
+    ) external view enoughDeposit returns (uint256) {
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
             fid,
@@ -235,9 +249,14 @@ contract FarcasterWalletOptimisticVerifier is
             signature
         );
 
-        return
+        if (
             verificationTimestamp[h] > 0 &&
-            block.timestamp >= verificationTimestamp[h] + challengingPeriod;
+            block.timestamp >= verificationTimestamp[h] + challengingPeriod
+        ) {
+            return messageTimestamp[h];
+        }
+
+        return 0;
     }
 
     /**
@@ -280,6 +299,11 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public {
+        // Ensure minimum gas limit of ~4M for verification
+        if (gasleft() < 3_900_000) {
+            revert InsufficientGas();
+        }
+    
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
             fid,
@@ -296,8 +320,8 @@ contract FarcasterWalletOptimisticVerifier is
                     publicKey,
                     signature
                 )
-            returns (bool verified) {
-                if (verified) {
+            returns (uint256 timestamp) {
+                if (timestamp > 0 && timestamp == messageTimestamp[h]) {
                     revert ChallengeFailed();
                 }
             } catch {}
@@ -337,6 +361,11 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public {
+        // Ensure minimum gas limit of ~4M for verification
+        if (gasleft() < 3_900_000) {
+            revert InsufficientGas();
+        }
+
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
             fid,
@@ -353,8 +382,8 @@ contract FarcasterWalletOptimisticVerifier is
                     publicKey,
                     signature
                 )
-            returns (bool verified) {
-                if (verified) {
+            returns (uint256 timestamp) {
+                if (timestamp > 0 && timestamp == messageTimestamp[h]) {
                     revert ChallengeFailed();
                 }
             } catch {}
@@ -395,15 +424,18 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public view returns (bool) {
-        // Ensure minimum gas limit of ~4M for verification
-        if (gasleft() < 3_900_000) {
-            revert InsufficientGas();
-        }
-        
+        bytes32 h = hash(
+            MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
+            fid,
+            verifyAddress,
+            publicKey,
+            signature
+        );
+
         try
             onchainVerifier.verifyAdd(fid, verifyAddress, publicKey, signature)
-        returns (bool verified) {
-            if (verified) {
+        returns (uint256 timestamp) {
+            if (timestamp > 0 && timestamp == messageTimestamp[h]) {
                 return false;
             }
         } catch {}
@@ -425,10 +457,13 @@ contract FarcasterWalletOptimisticVerifier is
         bytes32 publicKey,
         bytes memory signature
     ) public view returns (bool) {
-        // Ensure minimum gas limit of 4M for verification
-        if (gasleft() < 3_900_000) {
-            revert InsufficientGas();
-        }
+        bytes32 h = hash(
+            MessageType.MESSAGE_TYPE_VERIFICATION_REMOVE,
+            fid,
+            verifyAddress,
+            publicKey,
+            signature
+        );
 
         try
             onchainVerifier.verifyRemove(
@@ -437,8 +472,8 @@ contract FarcasterWalletOptimisticVerifier is
                 publicKey,
                 signature
             )
-        returns (bool verified) {
-            if (verified) {
+        returns (uint256 timestamp) {
+            if (timestamp > 0 && timestamp == messageTimestamp[h]) {
                 return false;
             }
         } catch {}

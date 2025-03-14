@@ -90,10 +90,10 @@ contract FarcasterWalletVerifierRouter is AccessControl {
         bytes32 publicKey,
         uint256 method,
         bytes memory signature
-    ) public view returns (bool) {
-        if (address(verifiers[method]) == address(0)) return false;
+    ) public view returns (uint256) {
+        if (address(verifiers[method]) == address(0)) return 0;
 
-        if (!publicKeyVerifier.verifyPublicKey(fid, publicKey)) return false;
+        if (!publicKeyVerifier.verifyPublicKey(fid, publicKey)) return 0;
 
         return
             verifiers[method].verifyAdd(
@@ -119,10 +119,10 @@ contract FarcasterWalletVerifierRouter is AccessControl {
         bytes32 publicKey,
         uint256 method,
         bytes memory signature
-    ) public view returns (bool) {
-        if (address(verifiers[method]) == address(0)) return false;
+    ) public view returns (uint256) {
+        if (address(verifiers[method]) == address(0)) return 0;
 
-        if (!publicKeyVerifier.verifyPublicKey(fid, publicKey)) return false;
+        if (!publicKeyVerifier.verifyPublicKey(fid, publicKey)) return 0;
 
         return
             verifiers[method].verifyRemove(

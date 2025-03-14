@@ -198,7 +198,7 @@ contract FarcasterMembership is
             );
             attestations[attUid][fid] = uid;
 
-            emit SetMember(attUid, 0, fid, permissions);
+            emit SetMember(attUid, fid, fid, permissions);
         }
     }
 

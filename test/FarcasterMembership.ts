@@ -81,12 +81,12 @@ describe("FarcasterMembership", function () {
     expect(await membership.read.countMembers([uid])).to.equal(2n);
     expect(await membership.read.getMembers([uid])).to.deep.equal([{
       farcasterId: 1n,
-      permissions: 0b1111111n,
+      permissions: 0b1111011n,
     }, {
       farcasterId: 2n,
       permissions: 0b1100000n,
     }]);
-    expect(await membership.read.getMember([uid, 1n])).to.deep.equal([true, 0b1111111n]);
+    expect(await membership.read.getMember([uid, 1n])).to.deep.equal([true, 0b1111011n]);
     expect(await membership.read.getMember([uid, 2n])).to.deep.equal([true, 0b1100000n]);
 
     await membership.write.setMember([uid, 2n, 3n, 0b1011111n], { account: alices[1] });
@@ -95,7 +95,7 @@ describe("FarcasterMembership", function () {
     expect(await membership.read.countMembers([uid])).to.equal(4n);
     expect(await membership.read.getMembers([uid])).to.deep.equal([{
       farcasterId: 1n,
-      permissions: 0b1111111n,
+      permissions: 0b1111011n,
     }, {
       farcasterId: 2n,
       permissions: 0b1100000n,
@@ -106,15 +106,15 @@ describe("FarcasterMembership", function () {
       farcasterId: 4n,
       permissions: 0b0111111n,
     }]);
-    expect(await membership.read.getMember([uid, 1n])).to.deep.equal([true, 0b1111111n]);
+    expect(await membership.read.getMember([uid, 1n])).to.deep.equal([true, 0b1111011n]);
     expect(await membership.read.getMember([uid, 2n])).to.deep.equal([true, 0b1100000n]);
     expect(await membership.read.getMember([uid, 3n])).to.deep.equal([true, 0b1011111n]);
     expect(await membership.read.getMember([uid, 4n])).to.deep.equal([true, 0b0111111n]);
 
     await expect(membership.write.removeMember([uid, 3n, 1n], { account: alices[0] })).to.be.rejectedWith('PermissionDenied')
+    await expect(membership.write.removeMember([uid, 4n, 1n], { account: alices[3] })).to.be.rejectedWith('PermissionDenied')
     await membership.write.removeMember([uid, 3n, 1n], { account: alices[2] });
     await expect(membership.write.removeMember([uid, 3n, 1n], { account: alices[2] })).to.be.rejectedWith('PermissionDenied')
-    await expect(membership.write.removeMember([uid, 4n, 1n], { account: alices[3] })).to.be.rejectedWith('PermissionDenied')
 
     expect(await membership.read.countMembers([uid])).to.equal(3n);
     expect(await membership.read.getMembers([uid])).to.deep.equal([{
@@ -204,7 +204,7 @@ describe("FarcasterMembership", function () {
     )).to.be.rejectedWith('PermissionDenied');
   });
 
-  it("Leave permission", async function () {
+  it("Can always leave", async function () {
     const { alices, membership, uid } = await loadFixture(deployFixture);
 
     await membership.write.setMember([uid, 1n, 2n, 0b1111111n], { account: alices[0] });
@@ -213,18 +213,35 @@ describe("FarcasterMembership", function () {
     // FID 2 leaves
     await membership.write.removeMember([uid, 2n, 2n], { account: alices[1] });
 
-    // FID 3 can't leave
-    expect(membership.write.removeMember([uid, 3n, 3n], { account: alices[2] })).to.be.rejectedWith('PermissionDenied()');
+    // FID 3 leaves
+    await membership.write.removeMember([uid, 3n, 3n], { account: alices[2] });
 
-    expect(await membership.read.countMembers([uid])).to.equal(2n);
+    expect(await membership.read.countMembers([uid])).to.equal(1n);
     expect(await membership.read.getMember([uid, 2n])).to.deep.equal([false, 0n]);
+    expect(await membership.read.getMember([uid, 3n])).to.deep.equal([false, 0n]);
   });
 
-  it("Add / remove member permission", async function () {
-    const { alices, membership, uid } = await loadFixture(deployFixture);
+  // it("Leave permission", async function () {
+  //   const { alices, membership, uid } = await loadFixture(deployFixture);
 
-    for (let i = 0; i < 0b1111; i++) {
+  //   await membership.write.setMember([uid, 1n, 2n, 0b1111111n], { account: alices[0] });
+  //   await membership.write.setMember([uid, 2n, 3n, 0b1111011n], { account: alices[1] });
+
+  //   // FID 2 leaves
+  //   await membership.write.removeMember([uid, 2n, 2n], { account: alices[1] });
+
+  //   // FID 3 can't leave
+  //   expect(membership.write.removeMember([uid, 3n, 3n], { account: alices[2] })).to.be.rejectedWith('PermissionDenied()');
+
+  //   expect(await membership.read.countMembers([uid])).to.equal(2n);
+  //   expect(await membership.read.getMember([uid, 2n])).to.deep.equal([false, 0n]);
+  // });
+
+  // it("Add / remove member permission", async function () {
+  //   const { alices, membership, uid } = await loadFixture(deployFixture);
+
+  //   for (let i = 0; i < 0b1111; i++) {
       
-    }
-  });
+  //   }
+  // });
 });

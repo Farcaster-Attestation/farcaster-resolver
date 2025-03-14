@@ -16,14 +16,14 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
      * @param verifyAddress The address to be verified.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified, encoded as (r, s, message).
-     * @return bool indicating whether the verification was successful.
+     * @return uint256 indicating timestamp of the verification or 0 if the verification is not valid.
      */
     function verifyAdd(
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view returns (bool) {
+    ) external view returns (uint256) {
         (bytes32 signature_r, bytes32 signature_s, bytes memory message) = abi
             .decode(signature, (bytes32, bytes32, bytes));
 
@@ -34,7 +34,7 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
                 signature_s,
                 message
             )
-        ) return false;
+        ) return 0;
 
         MessageDataVerificationAddAddress
             memory message_data = FcVerificationDecoder
@@ -45,10 +45,14 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
         );
 
         if (target != verifyAddress || message_data.fid != fid) {
-            return false;
+            return 0;
         }
 
-        return FcMessageVerification.verifyEthAddressClaim(message_data);
+        if (!FcMessageVerification.verifyEthAddressClaim(message_data)) {
+            return 0;
+        }
+
+        return message_data.timestamp;
     }
 
     /**
@@ -57,14 +61,14 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
      * @param verifyAddress The address to be removed.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified, encoded as (r, s, message).
-     * @return bool indicating whether the verification was successful.
+     * @return uint256 indicating timestamp of the verification or 0 if the verification is not valid.
      */
     function verifyRemove(
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view returns (bool) {
+    ) external view returns (uint256) {
         (bytes32 signature_r, bytes32 signature_s, bytes memory message) = abi
             .decode(signature, (bytes32, bytes32, bytes));
 
@@ -75,12 +79,16 @@ contract FarcasterWalletOnchainVerifier is IFarcasterWalletVerifier {
                 signature_s,
                 message
             )
-        ) return false;
+        ) return 0;
 
         MessageDataVerificationRemove
             memory message_data = FcVerificationDecoder
                 .decodeVerificationRemove(message);
 
-        return FcMessageVerification.verifyRemove(message_data, verifyAddress, fid);
+        if (!FcMessageVerification.verifyRemove(message_data, verifyAddress, fid)) {
+            return 0;
+        }
+
+        return message_data.timestamp;
     }
 }

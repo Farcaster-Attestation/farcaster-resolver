@@ -18,6 +18,7 @@ import {
   parseAbiParameters,
   PrivateKeyAccount,
 } from "viem";
+import { time, mine } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { privateKeyToAccount } from "viem/accounts";
 import FarcasterResolverModule from "../ignition/modules/FarcasterResolver";
 import TestSuiteModule from "../ignition/modules/TestSuite";
@@ -127,6 +128,10 @@ export async function signVerificationRemoveAddress(
 }
 
 export async function deployResolverWithAttestations() {
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+  await time.setNextBlockTimestamp(currentTimestamp);
+  await mine();
+
   const result = await ignition.deploy(TestSuiteModule);
 
   const fids = [1n, 2n, 3n, 4n];

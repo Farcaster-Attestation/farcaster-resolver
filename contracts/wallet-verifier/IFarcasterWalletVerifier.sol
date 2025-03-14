@@ -12,14 +12,14 @@ interface IFarcasterWalletVerifier {
      * @param verifyAddress The address to be verified.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified, encoded as (r, s, message).
-     * @return bool indicating whether the verification was successful.
+     * @return uint256 indicating timestamp of the verification or 0 if the verification is not valid.
      */
     function verifyAdd(
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view returns (bool);
+    ) external view returns (uint256);
 
     /**
      * @notice Verifies the removal of a Farcaster wallet verification.
@@ -27,12 +27,12 @@ interface IFarcasterWalletVerifier {
      * @param verifyAddress The address to be removed.
      * @param publicKey The public key associated with the signature.
      * @param signature The signature to be verified, encoded as (r, s, message).
-     * @return bool indicating whether the verification was successful.
+     * @return uint256 indicating timestamp of the verification or 0 if the verification is not valid.
      */
     function verifyRemove(
         uint256 fid,
         address verifyAddress,
         bytes32 publicKey,
         bytes memory signature
-    ) external view returns (bool);
+    ) external view returns (uint256);
 }

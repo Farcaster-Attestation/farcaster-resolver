@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { deployResolverWithAttestations } from "./utils";
 
 async function deployFixture() {
@@ -25,5 +25,6 @@ describe("POC", function () {
     } = await loadFixture(deployFixture);
 
     // Your test cases here
+    console.log(await time.latest())
   });
 })

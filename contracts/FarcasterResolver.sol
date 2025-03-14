@@ -28,6 +28,9 @@ contract FarcasterResolver is
     // The value is the attestation uid
     mapping(bytes32 => bytes32) internal uid;
 
+    // Mapping of key to the timestamp of the latest message
+    mapping(bytes32 => uint256) internal latestMessageTimestamp;
+
     mapping(address => EnumerableMap.UintToUintMap) internal walletAttestations;
     mapping(uint256 => EnumerableMap.UintToAddressMap) internal fidAttestations;
 
@@ -96,14 +99,18 @@ contract FarcasterResolver is
             return false;
         }
 
+        uint256 timestamp = verifyRemove(
+            fid,
+            recipient,
+            publicKey,
+            verificationMethod,
+            signature
+        );
+
         if (
-            verifyRemove(
-                fid,
-                recipient,
-                publicKey,
-                verificationMethod,
-                signature
-            )
+            timestamp > 0 &&
+            latestMessageTimestamp[key] > 0 &&
+            timestamp >= latestMessageTimestamp[key]
         ) {
             bytes32 attUid = uid[key];
 
@@ -118,6 +125,8 @@ contract FarcasterResolver is
             );
 
             delete uid[key];
+
+            latestMessageTimestamp[key] = timestamp;
 
             emit VerificationRevoked(
                 fid,
@@ -175,8 +184,15 @@ contract FarcasterResolver is
             signature
         );
 
-        return
-            verifyAdd(fid, recipient, publicKey, verificationMethod, signature);
+        uint256 timestamp = verifyAdd(fid, recipient, publicKey, verificationMethod, signature);
+
+        if (timestamp == 0 || timestamp <= latestMessageTimestamp[key]) {
+            return false;
+        }
+
+        latestMessageTimestamp[key] = timestamp;
+
+        return true;
     }
 
     /**

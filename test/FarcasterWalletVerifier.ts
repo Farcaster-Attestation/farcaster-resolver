@@ -2,6 +2,7 @@ import {
   time,
   loadFixture,
   impersonateAccount,
+  mine,
 } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre, { ignition } from "hardhat";
@@ -96,6 +97,10 @@ describe("FarcasterWalletVerifier", function () {
   let ed25519Signer: NobleEd25519Signer;
 
   before(async function () {
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    await time.setNextBlockTimestamp(currentTimestamp);
+    await mine();
+
     const { fid: fid_, alice, message, messageBytes, ed25519Signer: ed25519Signer_ } = await signVerificationAddAddress();
     
     fid = fid_;
@@ -151,7 +156,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(true);
+      expect(result).to.not.equal(0n);
     });
 
     it("Valid remove signature", async function () {
@@ -175,7 +180,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(true);
+      expect(result).to.not.equal(0n);
     });
 
     it("Invalid signature", async function () {
@@ -200,7 +205,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
     
-        expect(result).to.equal(false);
+        expect(result).to.equal(0n);
       }
 
       {
@@ -220,7 +225,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
     
-        expect(result).to.equal(false);
+        expect(result).to.equal(0n);
       }
 
       {
@@ -240,7 +245,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
     
-        expect(result).to.equal(false);
+        expect(result).to.equal(0n);
       }
     });
 
@@ -266,7 +271,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
 
-        expect(result).to.equal(false);
+        expect(result).to.equal(0n);
       }
 
       {
@@ -286,7 +291,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
 
-        expect(result).to.equal(false);
+        expect(result).to.equal(0n);
       }
 
       {
@@ -306,7 +311,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
 
-        expect(result).to.equal(false);
+        expect(result).to.equal(0n);
       }
     });
 
@@ -333,7 +338,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Attest", async function () {
@@ -364,7 +369,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(true);
+      expect(result).to.not.equal(0n);
 
       {
         // Must not be verified
@@ -460,7 +465,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
   
-        expect(result).to.equal(true);
+        expect(result).to.not.equal(0n);
       
         // Must not be verified
         expect(
@@ -543,7 +548,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
   
-        expect(result).to.equal(true);
+        expect(result).to.not.equal(0n);
   
         // Must be verified
         expect(
@@ -643,7 +648,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Valid signature but not wait 1 day", async function () {
@@ -665,6 +670,7 @@ describe("FarcasterWalletVerifier", function () {
         BigInt(message.data.fid),
         toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -675,7 +681,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Valid signature and wait 1 day", async function () {
@@ -697,6 +703,7 @@ describe("FarcasterWalletVerifier", function () {
         BigInt(message.data.fid),
         toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -709,7 +716,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(true);
+      expect(result).to.not.equal(0n);
     });
 
     it("Valid signature can't be challenged", async function () {
@@ -731,6 +738,7 @@ describe("FarcasterWalletVerifier", function () {
         BigInt(message.data.fid),
         toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -740,7 +748,7 @@ describe("FarcasterWalletVerifier", function () {
           toHexString(message.data.verificationAddAddressBody.address),
           toHexString(message.signer),
           encodedData,
-        ])
+        ], {gas: BigInt(4_000_000)})
       ).to.be.rejectedWith("ChallengeFailed()")
 
       const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
@@ -772,10 +780,9 @@ describe("FarcasterWalletVerifier", function () {
         BigInt(message.data.fid),
         toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
-    
-      let gasLimit = 1_000_000;
       
       await expect(
         walletOptimisticVerifier.write.challengeAdd([
@@ -783,7 +790,7 @@ describe("FarcasterWalletVerifier", function () {
           toHexString(message.data.verificationAddAddressBody.address),
           toHexString(message.signer),
           encodedData
-        ], {gas: BigInt(gasLimit)}) // Uncomment the expect reject to see that the test fails because the transaction succeeds.
+        ], {gas: BigInt(4_000_000)}) // Uncomment the expect reject to see that the test fails because the transaction succeeds.
       ).to.be.rejectedWith("ChallengeFailed()")
     
       const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
@@ -818,6 +825,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         alice.address,
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -837,22 +845,9 @@ describe("FarcasterWalletVerifier", function () {
         alice.address,
         toHexString(message.signer),
         encodedData,
-      ]);
+      ], {gas: BigInt(4_000_000)});
 
-      await time.increase(86400);
-
-      await expect(walletOptimisticVerifier.read.verifyAdd([
-        fid,
-        alice.address,
-        toHexString(message.signer),
-        encodedData,
-      ])).to.be.rejectedWith(`NotEnoughDeposit(${parseEther('0.015')})`)
-
-      await wallet1.sendTransaction({
-        to: walletOptimisticVerifier.address,
-        value: parseEther('0.005'),
-      })
-
+      // After challenge, the verification should be disabled
       const result = await walletOptimisticVerifier.read.verifyAdd([
         fid,
         alice.address,
@@ -861,58 +856,6 @@ describe("FarcasterWalletVerifier", function () {
       ]);
 
       expect(result).to.equal(false);
-    });
-
-    it("Invalid signature challenged until reward depleted", async function () {
-      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
-
-      const challengeArgs: [bigint, `0x${string}`, `0x${string}`, `0x${string}`][] = []
-
-      for (let i = 0; i < 5; i++) {
-        const { fid, alice, message, messageBytes } = await signVerificationAddAddress(BigInt(i + 10));
-
-        await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
-
-        const encodedData = encodeAbiParameters(
-          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
-          [
-            toHexString(message.signature.subarray(0, 32)),
-            toHexString(randomBytes(32)),
-            toHexString(messageBytes),
-          ]
-        );
-
-        await walletOptimisticVerifier.write.submitVerification([
-          MessageType.VERIFICATION_ADD_ETH_ADDRESS,
-          fid,
-          alice.address,
-          toHexString(message.signer),
-          encodedData,
-        ]);
-
-        challengeArgs.push([
-          fid,
-          alice.address, 
-          toHexString(message.signer),
-          encodedData
-        ])
-      }
-
-      await time.increase(16400);
-
-      for (let i = 0; i < 5; i++) {
-        const challenged = await walletOptimisticVerifier.read.tryChallengeAdd(challengeArgs[i]);
-
-        expect(challenged).to.equal(true);
-
-        await walletOptimisticVerifier.write.challengeAdd(challengeArgs[i]);
-      }
-
-      await time.increase(86400);
-
-      for (let i = 0; i < 5; i++) {
-        await expect(walletOptimisticVerifier.read.verifyAdd(challengeArgs[i])).to.be.rejectedWith(`NotEnoughDeposit(0)`)
-      }
     });
 
     it("Can't submit verification without enough deposit", async function () {
@@ -937,6 +880,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         alice.address,
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -945,13 +889,14 @@ describe("FarcasterWalletVerifier", function () {
         alice.address,
         toHexString(message.signer),
         encodedData,
-      ]);
+      ], {gas: BigInt(4_000_000)});
 
       await expect(walletOptimisticVerifier.write.submitVerification([
         MessageType.VERIFICATION_ADD_ETH_ADDRESS,
         fid,
         alice.address,
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ])).to.be.rejectedWith(`NotEnoughDeposit(${parseEther('0.015')})`);
     });
@@ -976,6 +921,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         alice.address,
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ])).to.be.rejectedWith(`InvalidPublicKey(${fid}, "${toHexString(message.signer)}")`);
 
@@ -988,7 +934,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Valid remove signature but not submitted", async function () {
@@ -1012,7 +958,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Valid remove signature but not wait 1 day", async function () {
@@ -1034,6 +980,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -1044,7 +991,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Valid remove signature and wait 1 day", async function () {
@@ -1066,6 +1013,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -1078,7 +1026,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(true);
+      expect(result).to.not.equal(0n);
     });
 
     it("Valid remove signature can't be challenged", async function () {
@@ -1100,6 +1048,7 @@ describe("FarcasterWalletVerifier", function () {
         BigInt(message.data.fid),
         toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
   
@@ -1109,7 +1058,7 @@ describe("FarcasterWalletVerifier", function () {
           toHexString(message.data.verificationRemoveBody.address),
           toHexString(message.signer),
           encodedData,
-        ])
+        ], {gas: BigInt(4_000_000)})
       ).to.be.rejectedWith("ChallengeFailed()")
   
       const challenged = await walletOptimisticVerifier.read.tryChallengeRemove([
@@ -1141,6 +1090,7 @@ describe("FarcasterWalletVerifier", function () {
         BigInt(message.data.fid),
         toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
   
@@ -1149,7 +1099,7 @@ describe("FarcasterWalletVerifier", function () {
         toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
-      ])
+      ], {gas: BigInt(4_000_000)})
   
       const challenged = await walletOptimisticVerifier.read.tryChallengeRemove([
         BigInt(message.data.fid),
@@ -1159,58 +1109,6 @@ describe("FarcasterWalletVerifier", function () {
       ]);
   
       expect(challenged).to.equal(true);
-    });
-
-    it("Invalid remove signature challenged until reward depleted", async function () {
-      const { walletOptimisticVerifier, publicKeyVerifier } = await loadFixture(deployFixture);
-
-      const challengeArgs: [bigint, `0x${string}`, `0x${string}`, `0x${string}`][] = []
-
-      for (let i = 0; i < 5; i++) {
-        const { fid, alice, message, messageBytes } = await signVerificationRemoveAddress(BigInt(i + 10));
-
-        await publicKeyVerifier.write.addKey([ fid, toHexString(message.signer) ])
-
-        const encodedData = encodeAbiParameters(
-          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
-          [
-            toHexString(message.signature.subarray(0, 32)),
-            toHexString(randomBytes(32)),
-            toHexString(messageBytes),
-          ]
-        );
-
-        await walletOptimisticVerifier.write.submitVerification([
-          MessageType.VERIFICATION_REMOVE,
-          fid,
-          alice.address,
-          toHexString(message.signer),
-          encodedData,
-        ]);
-
-        challengeArgs.push([
-          fid,
-          alice.address, 
-          toHexString(message.signer),
-          encodedData
-        ])
-      }
-  
-      await time.increase(16400);
-
-      for (let i = 0; i < 5; i++) {
-        const challenged = await walletOptimisticVerifier.read.tryChallengeRemove(challengeArgs[i]);
-
-        expect(challenged).to.equal(true);
-
-        await walletOptimisticVerifier.write.challengeRemove(challengeArgs[i]);
-      }
-
-      await time.increase(86400);
-
-      for (let i = 0; i < 5; i++) {
-        await expect(walletOptimisticVerifier.read.verifyRemove(challengeArgs[i])).to.be.rejectedWith(`NotEnoughDeposit(0)`)
-      }
     });
 
     it("Valid remove signature but invalid public key can't be submitted", async function () {
@@ -1232,6 +1130,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         alice.address,
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ])).to.be.rejectedWith(`InvalidPublicKey(${fid}, "${toHexString(message.signer)}")`);
 
@@ -1244,7 +1143,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(false);
+      expect(result).to.equal(0n);
     });
 
     it("Attest", async function () {
@@ -1273,6 +1172,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         toHexString(message.data.verificationAddAddressBody.address),
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
 
@@ -1285,7 +1185,7 @@ describe("FarcasterWalletVerifier", function () {
         encodedData,
       ]);
 
-      expect(result).to.equal(true);
+      expect(result).to.not.equal(0n);
 
       {
         // Must not be verified
@@ -1377,6 +1277,7 @@ describe("FarcasterWalletVerifier", function () {
           fid,
           toHexString(message.data.verificationAddAddressBody.address),
           toHexString(message.signer),
+          BigInt(message.data.timestamp),
           encodedData,
         ]);
   
@@ -1389,7 +1290,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
   
-        expect(result).to.equal(true);
+        expect(result).to.not.equal(0n);
       
         // Must not be verified
         expect(
@@ -1470,6 +1371,7 @@ describe("FarcasterWalletVerifier", function () {
           fid,
           toHexString(message.data.verificationRemoveBody.address),
           toHexString(message.signer),
+          BigInt(message.data.timestamp),
           encodedData,
         ]);
   
@@ -1482,7 +1384,7 @@ describe("FarcasterWalletVerifier", function () {
           encodedData,
         ]);
     
-        expect(result).to.equal(true);
+        expect(result).to.not.equal(0n);
   
         // Must be verified
         expect(
@@ -1568,7 +1470,7 @@ describe("FarcasterWalletVerifier", function () {
         alice.address,
         toHexString(message.signer),
         encodedData,
-      ]);
+      ], {gas: BigInt(4_000_000)});
 
       // Nothing happened...
 
@@ -1577,6 +1479,7 @@ describe("FarcasterWalletVerifier", function () {
         fid,
         alice.address,
         toHexString(message.signer),
+        BigInt(message.data.timestamp),
         encodedData,
       ]);
     })
@@ -1611,7 +1514,7 @@ describe("FarcasterWalletVerifier", function () {
         toHexString(message.data.verificationRemoveBody.address),
         toHexString(message.signer),
         encodedData,
-      ]);
+      ], {gas: BigInt(4_000_000)});
 
       // Nothing happened...
     })
@@ -1647,6 +1550,7 @@ describe("FarcasterWalletVerifier", function () {
           BigInt(message.data.fid),
           toHexString(message.data.verificationAddAddressBody.address),
           toHexString(message.signer),
+          BigInt(message.data.timestamp),
           encodedData,
         ]);
       }
@@ -1670,6 +1574,7 @@ describe("FarcasterWalletVerifier", function () {
           fid,
           alice.address,
           toHexString(message.signer),
+          BigInt(message.data.timestamp),
           encodedData,
         ], { account: wallet2.account });
       }
@@ -1698,6 +1603,7 @@ describe("FarcasterWalletVerifier", function () {
             BigInt(message.data.fid),
             toHexString(message.data.verificationAddAddressBody.address),
             toHexString(message.signer),
+            BigInt(message.data.timestamp),
             encodedData,
           ], { account: wallet2.account })
         ).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${RELAYER_ROLE}")`);
@@ -1721,6 +1627,7 @@ describe("FarcasterWalletVerifier", function () {
             fid,
             alice.address,
             toHexString(message.signer),
+            BigInt(message.data.timestamp),
             encodedData,
           ], { account: wallet2.account })
         ).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet2.account.address)}", "${RELAYER_ROLE}")`);
@@ -1783,7 +1690,7 @@ describe("FarcasterWalletVerifier", function () {
             encodedData,
           ]
         )
-      ).to.equal(false)
+      ).to.equal(0n)
     })
 
     it("Invalid public key for verifying add", async () => {
@@ -1810,7 +1717,7 @@ describe("FarcasterWalletVerifier", function () {
             encodedData,
           ]
         )
-      ).to.equal(false)
+      ).to.equal(0n)
     })
 
     it("Undefined method for verifying remove", async () => {
@@ -1839,7 +1746,7 @@ describe("FarcasterWalletVerifier", function () {
             encodedData,
           ]
         )
-      ).to.equal(false)
+      ).to.equal(0n)
     })
 
     it("Invalid public key for verifying remove", async () => {
@@ -1865,7 +1772,7 @@ describe("FarcasterWalletVerifier", function () {
             encodedData,
           ]
         )
-      ).to.equal(false)
+      ).to.equal(0n)
     })
 
     it("No permission to add verifier", async () => {
@@ -1908,7 +1815,7 @@ describe("FarcasterWalletVerifier", function () {
             encodedData,
           ]
         )
-      ).to.equal(true)
+      ).to.not.equal(0n)
       
       await expect(resolver.write.emergencyRemoveVerifier([1n])).to.be.rejectedWith(`AccessControlUnauthorizedAccount("${getAddress(wallet1.account.address)}", "${SECURITY_ROLE}")`)
     
@@ -1926,7 +1833,7 @@ describe("FarcasterWalletVerifier", function () {
             encodedData,
           ]
         )
-      ).to.equal(false)
+      ).to.equal(0n)
     })
   })
 
