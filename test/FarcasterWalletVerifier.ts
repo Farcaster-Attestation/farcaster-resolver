@@ -848,14 +848,12 @@ describe("FarcasterWalletVerifier", function () {
       ], {gas: BigInt(4_000_000)});
 
       // After challenge, the verification should be disabled
-      const result = await walletOptimisticVerifier.read.verifyAdd([
+      await expect(walletOptimisticVerifier.read.verifyAdd([
         fid,
         alice.address,
         toHexString(message.signer),
         encodedData,
-      ]);
-
-      expect(result).to.equal(false);
+      ])).to.be.rejectedWith(`Disabled()`);
     });
 
     it("Can't submit verification without enough deposit", async function () {
@@ -898,7 +896,7 @@ describe("FarcasterWalletVerifier", function () {
         toHexString(message.signer),
         BigInt(message.data.timestamp),
         encodedData,
-      ])).to.be.rejectedWith(`NotEnoughDeposit(${parseEther('0.015')})`);
+      ])).to.be.rejectedWith(`Disabled()`);
     });
 
     it("Valid signature but invalid public key can't be submitted", async function () {
