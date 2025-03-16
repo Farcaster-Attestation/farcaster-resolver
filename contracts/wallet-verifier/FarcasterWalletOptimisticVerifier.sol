@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import {IFarcasterWalletVerifier} from "./IFarcasterWalletVerifier.sol";
 import {IFarcasterPublicKeyVerifier} from "../public-key-verifier/IFarcasterPublicKeyVerifier.sol";
 import {MessageType} from "@farcaster-attestation/farcaster-decoder/contracts/protobufs/message.proto.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 
 /**
  * @title FarcasterWalletOptimisticVerifier
@@ -12,7 +13,8 @@ import {MessageType} from "@farcaster-attestation/farcaster-decoder/contracts/pr
  */
 contract FarcasterWalletOptimisticVerifier is
     IFarcasterWalletVerifier,
-    AccessControl
+    AccessControl,
+    Multicall
 {
     error InvalidMessageType(MessageType messageType);
     error InvalidPublicKey(uint256 fid, bytes32 publicKey);
@@ -303,7 +305,7 @@ contract FarcasterWalletOptimisticVerifier is
         if (gasleft() < 3_900_000) {
             revert InsufficientGas();
         }
-    
+
         bytes32 h = hash(
             MessageType.MESSAGE_TYPE_VERIFICATION_ADD_ETH_ADDRESS,
             fid,

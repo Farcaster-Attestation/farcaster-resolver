@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {IL2ToL2CrossDomainMessenger} from "./IL2ToL2CrossDomainMessenger.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 
 import {IFarcasterResolver} from "../IFarcasterResolver.sol";
 
@@ -28,7 +29,7 @@ import {IFarcasterResolver} from "../IFarcasterResolver.sol";
  * The contract is designed to be deployed deterministically to the same address across all chains,
  * making cross-chain messaging simpler and more predictable.
  */
-contract FarcasterResolverInterop is IFarcasterResolver {
+contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
     using EnumerableMap for EnumerableMap.UintToUintMap;
     using EnumerableMap for EnumerableMap.UintToAddressMap;
 
@@ -163,8 +164,11 @@ contract FarcasterResolverInterop is IFarcasterResolver {
     ) external {
         if (!isSourceChain) revert NotSourceChain();
         if (_toChainId == block.chainid) revert InvalidDestination();
-        if (_recipient.code.length > 0 && !_enableInterop[_recipient][_toChainId]) revert SmartContractWalletNotAllowed();
-        
+        if (
+            _recipient.code.length > 0 &&
+            !_enableInterop[_recipient][_toChainId]
+        ) revert SmartContractWalletNotAllowed();
+
         bool _isAttest = sourceResolver.isVerified(_fid, _recipient);
 
         // Encode the function call
@@ -218,7 +222,6 @@ contract FarcasterResolverInterop is IFarcasterResolver {
         _enableInterop[msg.sender][chainId] = true;
         emit InteropEnabled(msg.sender, chainId);
     }
-
 
     // ------------------------------------------------------------------------
     // LOCAL STORAGE METHODS (used only if !isSourceChain)
