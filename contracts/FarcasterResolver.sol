@@ -21,6 +21,8 @@ contract FarcasterResolver is
     using EnumerableMap for EnumerableMap.UintToAddressMap;
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
+    error SignatureAlreadyUsed();
+
     /// @notice The schema ID for the Farcaster resolver
     bytes32 public schemaId;
 
@@ -33,6 +35,8 @@ contract FarcasterResolver is
 
     mapping(address => EnumerableMap.UintToUintMap) internal walletAttestations;
     mapping(uint256 => EnumerableMap.UintToAddressMap) internal fidAttestations;
+
+    mapping(bytes32 => bool) internal signatureHashUsed;
 
     /**
      * @dev Constructor for the FarcasterResolver contract
@@ -50,6 +54,16 @@ contract FarcasterResolver is
         );
     }
 
+    function signatureHash(
+        address recipient,
+        uint256 fid,
+        bytes32 publicKey,
+        uint256 verificationMethod,
+        bytes memory signature
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(recipient, fid, publicKey, verificationMethod, signature));
+    }
+
     /**
      * @notice Attest a Farcaster ID and add the verified address to the mapping.
      * @param recipient The recipient of the attestation
@@ -65,6 +79,12 @@ contract FarcasterResolver is
         uint256 verificationMethod,
         bytes memory signature
     ) public returns (bytes32) {
+        bytes32 h = signatureHash(recipient, fid, publicKey, verificationMethod, signature);
+
+        if (signatureHashUsed[h]) {
+            revert SignatureAlreadyUsed();
+        }
+
         return
             _eas.attest(
                 AttestationRequest({
@@ -94,10 +114,17 @@ contract FarcasterResolver is
         bytes memory signature
     ) public returns (bool) {
         bytes32 key = computeKey(fid, recipient);
+        bytes32 h = signatureHash(recipient, fid, publicKey, verificationMethod, signature);
 
         if (uid[key] == bytes32(0)) {
             return false;
         }
+
+        if (signatureHashUsed[h]) {
+            revert SignatureAlreadyUsed();
+        }
+
+        signatureHashUsed[h] = true;
 
         uint256 timestamp = verifyRemove(
             fid,
@@ -117,16 +144,16 @@ contract FarcasterResolver is
             walletAttestations[recipient].remove(uint256(attUid));
             fidAttestations[fid].remove(uint256(attUid));
 
+            delete uid[key];
+
+            latestMessageTimestamp[key] = timestamp;
+
             _eas.revoke(
                 RevocationRequest({
                     schema: schemaId,
                     data: RevocationRequestData({uid: attUid, value: 0})
                 })
             );
-
-            delete uid[key];
-
-            latestMessageTimestamp[key] = timestamp;
 
             emit VerificationRevoked(
                 fid,
@@ -172,9 +199,17 @@ contract FarcasterResolver is
             return false;
         }
 
+        uint256 timestamp = verifyAdd(fid, recipient, publicKey, verificationMethod, signature);
+
+        if (timestamp == 0 || timestamp <= latestMessageTimestamp[key]) {
+            return false;
+        }
+
         uid[key] = attestation.uid;
         walletAttestations[recipient].set(uint256(attestation.uid), fid);
         fidAttestations[fid].set(uint256(attestation.uid), recipient);
+
+        latestMessageTimestamp[key] = timestamp;
 
         emit VerificationAttested(
             fid,
@@ -183,14 +218,6 @@ contract FarcasterResolver is
             publicKey,
             signature
         );
-
-        uint256 timestamp = verifyAdd(fid, recipient, publicKey, verificationMethod, signature);
-
-        if (timestamp == 0 || timestamp <= latestMessageTimestamp[key]) {
-            return false;
-        }
-
-        latestMessageTimestamp[key] = timestamp;
 
         return true;
     }

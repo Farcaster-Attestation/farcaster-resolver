@@ -747,6 +747,24 @@ describe("FarcasterWalletVerifier", function () {
           BigInt(message.data.fid),
           toHexString(message.data.verificationAddAddressBody.address),
           toHexString(message.signer),
+          encodedData
+        ], {gas: BigInt(1_000_000)})
+      ).to.be.rejectedWith("InsufficientGas()")
+
+      await expect(
+        walletOptimisticVerifier.write.challengeAdd([
+          BigInt(message.data.fid),
+          toHexString(message.data.verificationAddAddressBody.address),
+          toHexString(message.signer),
+          encodedData
+        ], {gas: BigInt(3_800_000)})
+      ).to.be.rejectedWith("InsufficientGas()")
+
+      await expect(
+        walletOptimisticVerifier.write.challengeAdd([
+          BigInt(message.data.fid),
+          toHexString(message.data.verificationAddAddressBody.address),
+          toHexString(message.signer),
           encodedData,
         ], {gas: BigInt(4_000_000)})
       ).to.be.rejectedWith("ChallengeFailed()")
