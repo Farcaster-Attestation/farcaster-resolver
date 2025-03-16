@@ -71,7 +71,10 @@ abstract contract FarcasterResolverConsumer is
             return (true, fid, wallet);
         }
 
-        valid = (attestation.expirationTime == 0 || attestation.expirationTime >= block.timestamp) && resolver.isVerified(fid, wallet);
+        valid =
+            (attestation.expirationTime == 0 ||
+                attestation.expirationTime >= block.timestamp) &&
+            resolver.isVerified(fid, wallet);
     }
 
     /**
@@ -113,6 +116,7 @@ abstract contract FarcasterResolverConsumer is
         return
             interfaceId ==
             type(IFarcasterResolverAttestationDecoder).interfaceId ||
-            interfaceId == type(IERC165).interfaceId;
+            interfaceId == type(IERC165).interfaceId ||
+            interfaceId == type(SchemaResolver).interfaceId;
     }
 }

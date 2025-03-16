@@ -142,6 +142,36 @@ describe("SimpleConsumer", function () {
     );
   });
 
+  it("Revoke after farcaster wallet is revoked", async function () {
+    const { eas, schemaId, alices, simpleConsumer } = await loadFixture(
+      deploySimpleFixture
+    );
+
+    const encodedData = encodeAbiParameters(parseAbiParameters("uint256 fid"), [
+      1n,
+    ]);
+
+    await eas.write.attest(
+      [
+        {
+          schema: schemaId,
+          data: {
+            recipient: simpleConsumer.address,
+            expirationTime: 0n,
+            revocable: true,
+            value: 0n,
+            refUID:
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+            data: encodedData,
+          },
+        },
+      ],
+      {
+        account: alices[0],
+      }
+    );
+  });
+
   it("Invalid FID", async function () {
     const { eas, schemaId, alices, simpleConsumer } = await loadFixture(
       deploySimpleFixture
@@ -204,8 +234,9 @@ describe("SimpleConsumer", function () {
 
 describe("StandardConsumer", function () {
   it("Support decoder interfaces", async function () {
-    const { eas, resolver, membership } =
-      await loadFixture(deploySimpleFixture);
+    const { eas, resolver, membership } = await loadFixture(
+      deploySimpleFixture
+    );
 
     const standardConsumer = await hre.viem.deployContract(
       "FarcasterResolverStandardConsumer",
@@ -222,9 +253,11 @@ describe("StandardConsumer", function () {
       ]
     );
 
-    expect(await standardConsumer.read.supportsInterface(['0xbe3efb08'])).to.be.true
-    expect(await standardConsumer.read.supportsInterface(['0xfafec1c7'])).to.be.true
-  })
+    expect(await standardConsumer.read.supportsInterface(["0xbe3efb08"])).to.be
+      .true;
+    expect(await standardConsumer.read.supportsInterface(["0xfafec1c7"])).to.be
+      .true;
+  });
 
   it("No Ref", async function () {
     const { eas, resolver, membership, schemaRegistry, alices } =
@@ -281,23 +314,24 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    const uid = await getAttestationUid(await eas.write.attest(
-      [
-        {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID:
-              "0x0000000000000000000000000000000000000000000000000000000000000000",
-            data: encodedData,
-            value: 0n,
+    const uid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[0],
+        ],
+        {
+          account: alices[0],
         }
       )
     );
@@ -317,15 +351,18 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    await eas.write.revoke([
-      {
-        schema: schemaId,
-        data: {
-          uid,
-          value: 0n,
+    await eas.write.revoke(
+      [
+        {
+          schema: schemaId,
+          data: {
+            uid,
+            value: 0n,
+          },
         },
-      },
-    ], { account: alices[0] });
+      ],
+      { account: alices[0] }
+    );
   });
 
   it("No Ref + Recipient", async function () {
@@ -537,24 +574,26 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    const attUid = await getAttestationUid(await eas.write.attest(
-      [
-        {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID: uid,
-            data: encodedData,
-            value: 0n,
+    const attUid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uid,
+              data: encodedData,
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[0],
-      }
-    ));
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    );
 
     await expect(
       eas.write.revoke(
@@ -571,27 +610,36 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    await eas.write.revoke([
-      {
-        schema: schemaId,
-        data: {
-          uid: attUid,
-          value: 0n,
+    await eas.write.revoke(
+      [
+        {
+          schema: schemaId,
+          data: {
+            uid: attUid,
+            value: 0n,
+          },
         },
-      },
-    ], { account: alices[0] });
+      ],
+      { account: alices[0] }
+    );
 
-    await eas.write.revoke([
-      {
-        schema: keccak256(
-          encodePacked(["string", "address", "bool"], ["uint256 fid", simpleConsumer.address, true])
-        ),
-        data: {
-          uid,
-          value: 0n,
+    await eas.write.revoke(
+      [
+        {
+          schema: keccak256(
+            encodePacked(
+              ["string", "address", "bool"],
+              ["uint256 fid", simpleConsumer.address, true]
+            )
+          ),
+          data: {
+            uid,
+            value: 0n,
+          },
         },
-      },
-    ], { account: alices[0] });
+      ],
+      { account: alices[0] }
+    );
 
     await expect(
       eas.write.attest(
@@ -612,7 +660,7 @@ describe("StandardConsumer", function () {
           account: alices[0],
         }
       )
-    ).to.be.rejectedWith(`AttestationRevoked("${uid}")`)
+    ).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
   });
 
   it("Basic Ref in body", async function () {
@@ -717,20 +765,20 @@ describe("StandardConsumer", function () {
       await eas.write.attest(
         [
           {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID:
-              "0x0000000000000000000000000000000000000000000000000000000000000000",
-            data: encodedData,
-            value: 0n,
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[0],
+        ],
+        {
+          account: alices[0],
         }
       )
     );
@@ -750,15 +798,18 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    await eas.write.revoke([
-      {
-        schema: schemaId,
-        data: {
-          uid: attUid,
-          value: 0n,
+    await eas.write.revoke(
+      [
+        {
+          schema: schemaId,
+          data: {
+            uid: attUid,
+            value: 0n,
+          },
         },
-      },
-    ], { account: alices[0] });
+      ],
+      { account: alices[0] }
+    );
   });
 
   it("Nested Ref", async function () {
@@ -827,13 +878,16 @@ describe("StandardConsumer", function () {
           expirationTime: 0n,
           revocable: true,
           value: 0n,
-          refUID: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          refUID:
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
           data: dummyEncodedData,
         },
       },
     ]);
 
-    const receiptNoRef = await publicClient.waitForTransactionReceipt({ hash: hashNoRef });
+    const receiptNoRef = await publicClient.waitForTransactionReceipt({
+      hash: hashNoRef,
+    });
     const uidNoRef = receiptNoRef.logs.find(
       (log) =>
         log.topics[0] ==
@@ -933,24 +987,26 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejectedWith(`MissingFarcasterResolverConsumer("${uidNoRef}")`);
 
-    const attUid = await getAttestationUid(await eas.write.attest(
-      [
-        {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID: uid,
-            data: encodedData,
-            value: 0n,
+    const attUid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uid,
+              data: encodedData,
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[0],
-      }
-    ));
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    );
 
     await expect(
       eas.write.revoke(
@@ -967,15 +1023,18 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejected;
 
-    await eas.write.revoke([
-      {
-        schema: schemaId,
-        data: {
-          uid: attUid,
-          value: 0n,
+    await eas.write.revoke(
+      [
+        {
+          schema: schemaId,
+          data: {
+            uid: attUid,
+            value: 0n,
+          },
         },
-      },
-    ], { account: alices[0] });
+      ],
+      { account: alices[0] }
+    );
   });
 
   it("Basic Ref with Membership checking", async function () {
@@ -999,17 +1058,28 @@ describe("StandardConsumer", function () {
     // FID 2: Both attest and revoke
     // FID 3: Attest only
     // FID 4: Revoke only
-    await membership.write.setMember([uid, 1n, 2n, 0b11n], { account: alices[0] });
-    await membership.write.setMember([uid, 1n, 3n, 0b01n], { account: alices[0] });
-    await membership.write.setMember([uid, 1n, 4n, 0b10n], { account: alices[0] });
+    await membership.write.setMember([uid, 1n, 2n, 0b11n], {
+      account: alices[0],
+    });
+    await membership.write.setMember([uid, 1n, 3n, 0b01n], {
+      account: alices[0],
+    });
+    await membership.write.setMember([uid, 1n, 4n, 0b10n], {
+      account: alices[0],
+    });
 
-    expect((await membership.simulate.verifyMember([uid, 1n, 0b01n])).result).to.be.true
-    expect((await membership.simulate.verifyMember([uid, 1n, 0b10n])).result).to.be.true
-    expect((await membership.simulate.verifyMember([uid, 2n, 0b01n])).result).to.be.true
-    expect((await membership.simulate.verifyMember([uid, 2n, 0b10n])).result).to.be.true
-    expect((await membership.simulate.verifyMember([uid, 3n, 0b01n])).result).to.be.true
-    expect((await membership.simulate.verifyMember([uid, 4n, 0b10n])).result).to.be.true
-
+    expect((await membership.simulate.verifyMember([uid, 1n, 0b01n])).result).to
+      .be.true;
+    expect((await membership.simulate.verifyMember([uid, 1n, 0b10n])).result).to
+      .be.true;
+    expect((await membership.simulate.verifyMember([uid, 2n, 0b01n])).result).to
+      .be.true;
+    expect((await membership.simulate.verifyMember([uid, 2n, 0b10n])).result).to
+      .be.true;
+    expect((await membership.simulate.verifyMember([uid, 3n, 0b01n])).result).to
+      .be.true;
+    expect((await membership.simulate.verifyMember([uid, 4n, 0b10n])).result).to
+      .be.true;
 
     const standardConsumer = await hre.viem.deployContract(
       "FarcasterResolverStandardConsumer",
@@ -1041,81 +1111,33 @@ describe("StandardConsumer", function () {
         ]
       );
 
-      return encodedData
+      return encodedData;
     }
 
     for (let i = 0; i <= 1; i++) {
-      const attUid = await getAttestationUid(await eas.write.attest(
-        [
-          {
-            schema: schemaId,
-            data: {
-              recipient: standardConsumer.address,
-              expirationTime: 0n,
-              revocable: true,
-              refUID: uid,
-              data: encodeData(BigInt(i + 1)),
-              value: 0n,
+      const attUid = await getAttestationUid(
+        await eas.write.attest(
+          [
+            {
+              schema: schemaId,
+              data: {
+                recipient: standardConsumer.address,
+                expirationTime: 0n,
+                revocable: true,
+                refUID: uid,
+                data: encodeData(BigInt(i + 1)),
+                value: 0n,
+              },
             },
-          },
-        ],
-        {
-          account: alices[i],
-        }
-      ));
-  
-      await eas.write.revoke([
-        {
-          schema: schemaId,
-          data: {
-            uid: attUid,
-            value: 0n,
-          },
-        },
-      ], { account: alices[i] });
-    }
-
-    {
-      const attUid = await getAttestationUid(await eas.write.attest(
-        [
+          ],
           {
-            schema: schemaId,
-            data: {
-              recipient: standardConsumer.address,
-              expirationTime: 0n,
-              revocable: true,
-              refUID: uid,
-              data: encodeData(3n),
-              value: 0n,
-            },
-          },
-        ],
-        {
-          account: alices[2],
-        }
-      ));
+            account: alices[i],
+          }
+        )
+      );
 
-      await expect(eas.write.attest(
+      await eas.write.revoke(
         [
-          {
-            schema: schemaId,
-            data: {
-              recipient: standardConsumer.address,
-              expirationTime: 0n,
-              revocable: true,
-              refUID: uid,
-              data: encodeData(4n),
-              value: 0n,
-            },
-          },
-        ],
-        {
-          account: alices[3],
-        }
-      )).to.be.rejected;
-
-      await expect(
-        eas.write.revoke([
           {
             schema: schemaId,
             data: {
@@ -1123,7 +1145,67 @@ describe("StandardConsumer", function () {
               value: 0n,
             },
           },
-        ], { account: alices[2] })
+        ],
+        { account: alices[i] }
+      );
+    }
+
+    {
+      const attUid = await getAttestationUid(
+        await eas.write.attest(
+          [
+            {
+              schema: schemaId,
+              data: {
+                recipient: standardConsumer.address,
+                expirationTime: 0n,
+                revocable: true,
+                refUID: uid,
+                data: encodeData(3n),
+                value: 0n,
+              },
+            },
+          ],
+          {
+            account: alices[2],
+          }
+        )
+      );
+
+      await expect(
+        eas.write.attest(
+          [
+            {
+              schema: schemaId,
+              data: {
+                recipient: standardConsumer.address,
+                expirationTime: 0n,
+                revocable: true,
+                refUID: uid,
+                data: encodeData(4n),
+                value: 0n,
+              },
+            },
+          ],
+          {
+            account: alices[3],
+          }
+        )
+      ).to.be.rejected;
+
+      await expect(
+        eas.write.revoke(
+          [
+            {
+              schema: schemaId,
+              data: {
+                uid: attUid,
+                value: 0n,
+              },
+            },
+          ],
+          { account: alices[2] }
+        )
       ).to.be.rejected;
     }
 
@@ -1132,68 +1214,74 @@ describe("StandardConsumer", function () {
       // But still has permission to revoke
       // That member may revoke but not attest more
 
-      await membership.write.setMember([uid, 1n, 4n, 0b11n], { account: alices[0] });
+      await membership.write.setMember([uid, 1n, 4n, 0b11n], {
+        account: alices[0],
+      });
 
-      const attUid = await getAttestationUid(await eas.write.attest(
+      const attUid = await getAttestationUid(
+        await eas.write.attest(
+          [
+            {
+              schema: schemaId,
+              data: {
+                recipient: standardConsumer.address,
+                expirationTime: 0n,
+                revocable: true,
+                refUID: uid,
+                data: encodeData(4n),
+                value: 0n,
+              },
+            },
+          ],
+          {
+            account: alices[3],
+          }
+        )
+      );
+
+      await membership.write.setMember([uid, 1n, 4n, 0b10n], {
+        account: alices[0],
+      });
+
+      await expect(
+        eas.write.attest(
+          [
+            {
+              schema: schemaId,
+              data: {
+                recipient: standardConsumer.address,
+                expirationTime: 0n,
+                revocable: true,
+                refUID: uid,
+                data: encodeData(4n),
+                value: 0n,
+              },
+            },
+          ],
+          {
+            account: alices[3],
+          }
+        )
+      ).to.be.rejected;
+
+      await eas.write.revoke(
         [
           {
             schema: schemaId,
             data: {
-              recipient: standardConsumer.address,
-              expirationTime: 0n,
-              revocable: true,
-              refUID: uid,
-              data: encodeData(4n),
+              uid: attUid,
               value: 0n,
             },
           },
         ],
-        {
-          account: alices[3],
-        }
-      ));
-
-      await membership.write.setMember([uid, 1n, 4n, 0b10n], { account: alices[0] });
-
-      await expect(eas.write.attest(
-        [
-          {
-            schema: schemaId,
-            data: {
-              recipient: standardConsumer.address,
-              expirationTime: 0n,
-              revocable: true,
-              refUID: uid,
-              data: encodeData(4n),
-              value: 0n,
-            },
-          },
-        ],
-        {
-          account: alices[3],
-        }
-      )).to.be.rejected;
-
-      await eas.write.revoke([
-        {
-          schema: schemaId,
-          data: {
-            uid: attUid,
-            value: 0n,
-          },
-        },
-      ], { account: alices[3] });
+        { account: alices[3] }
+      );
     }
   });
 
   it("No Ref with Membership checking", async function () {
-    const {
-      eas,
-      resolver,
-      membership,
-      schemaRegistry,
-      alices,
-    } = await loadFixture(deploySimpleFixture);
+    const { eas, resolver, membership, schemaRegistry, alices } =
+      await loadFixture(deploySimpleFixture);
 
     const standardConsumer = await hre.viem.deployContract(
       "FarcasterResolverStandardConsumer",
@@ -1225,27 +1313,30 @@ describe("StandardConsumer", function () {
         ]
       );
 
-      return encodedData
+      return encodedData;
     }
 
-    await expect(eas.write.attest(
-      [
-        {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID: "0x0000000000000000000000000000000000000000000000000000000000000000",
-            data: encodeData(1n),
-            value: 0n,
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodeData(1n),
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[0],
-      }
-    )).to.be.rejectedWith("RefNotFound");
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith("RefNotFound");
   });
 
   it("Revoked Ref with Membership checking", async function () {
@@ -1267,22 +1358,32 @@ describe("StandardConsumer", function () {
 
     // Add members
     // FID 2: Both attest and revoke
-    await membership.write.setMember([uid, 1n, 2n, 0b11n], { account: alices[0] });
+    await membership.write.setMember([uid, 1n, 2n, 0b11n], {
+      account: alices[0],
+    });
 
-    expect((await membership.simulate.verifyMember([uid, 1n, 0b01n])).result).to.be.true
-    expect((await membership.simulate.verifyMember([uid, 1n, 0b10n])).result).to.be.true
+    expect((await membership.simulate.verifyMember([uid, 1n, 0b01n])).result).to
+      .be.true;
+    expect((await membership.simulate.verifyMember([uid, 1n, 0b10n])).result).to
+      .be.true;
 
-    await eas.write.revoke([
-      {
-        schema: keccak256(
-          encodePacked(["string", "address", "bool"], ["uint256 fid", simpleConsumer.address, true])
-        ),
-        data: {
-          uid: uid,
-          value: 0n,
+    await eas.write.revoke(
+      [
+        {
+          schema: keccak256(
+            encodePacked(
+              ["string", "address", "bool"],
+              ["uint256 fid", simpleConsumer.address, true]
+            )
+          ),
+          data: {
+            uid: uid,
+            value: 0n,
+          },
         },
-      },
-    ], { account: alices[0] });
+      ],
+      { account: alices[0] }
+    );
 
     const standardConsumer = await hre.viem.deployContract(
       "FarcasterResolverStandardConsumer",
@@ -1314,45 +1415,49 @@ describe("StandardConsumer", function () {
         ]
       );
 
-      return encodedData
+      return encodedData;
     }
 
-    await expect(eas.write.attest(
-      [
-        {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID: uid,
-            data: encodeData(1n),
-            value: 0n,
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uid,
+              data: encodeData(1n),
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[0],
-      }
-    )).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
 
-    await expect(eas.write.attest(
-      [
-        {
-          schema: schemaId,
-          data: {
-            recipient: standardConsumer.address,
-            expirationTime: 0n,
-            revocable: true,
-            refUID: uid,
-            data: encodeData(2n),
-            value: 0n,
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uid,
+              data: encodeData(2n),
+              value: 0n,
+            },
           },
-        },
-      ],
-      {
-        account: alices[1],
-      }
-    )).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
+        ],
+        {
+          account: alices[1],
+        }
+      )
+    ).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
   });
 });
