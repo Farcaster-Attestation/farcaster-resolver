@@ -89,8 +89,8 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
     mapping(uint256 => EnumerableMap.UintToAddressMap)
         internal localFidAttestations;
 
-    /// @dev Maps attestation keys to verification status
-    mapping(bytes32 => bool) internal _isVerified;
+    /// @dev Maps attestation keys to verification attestationUID
+    mapping(bytes32 => bytes32) internal _isVerified;
 
     /// @dev Enable interop for a smart contract wallet on a specific chain
     mapping(address => mapping(uint256 => bool)) internal _enableInterop;
@@ -146,6 +146,7 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
         uint256 indexed toChainId,
         address indexed recipient,
         uint256 indexed fid,
+        bytes32 uid,
         bool isVerified
     );
 
@@ -169,18 +170,25 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
             !_enableInterop[_recipient][_toChainId]
         ) revert SmartContractWalletNotAllowed();
 
-        bool _isAttest = sourceResolver.isVerified(_fid, _recipient);
+        bytes32 _uid = sourceResolver.getAttestationUid(_fid, _recipient);
+        bool _isAttest = _uid != bytes32(0);
 
         // Encode the function call
         bytes memory message = abi.encodeCall(
             this.receiveSync,
-            (_recipient, _fid, _isAttest)
+            (_recipient, _fid, _uid)
         );
 
         // Send cross-chain message
         messenger.sendMessage(_toChainId, address(this), message);
 
-        emit CrossChainSyncInitiated(_toChainId, _recipient, _fid, _isAttest);
+        emit CrossChainSyncInitiated(
+            _toChainId,
+            _recipient,
+            _fid,
+            _uid,
+            _isAttest
+        );
     }
 
     /**
@@ -188,19 +196,19 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
      *         Only callable via cross-domain messenger, from this same contract on origin chain.
      * @param _recipient The wallet address to sync
      * @param _fid The Farcaster ID to sync
-     * @param _isAttest Whether this is an attestation (true) or revocation (false)
+     * @param _uid The attestation UID or bytes32(0) if revoked
      */
     function receiveSync(
         address _recipient,
         uint256 _fid,
-        bool _isAttest
+        bytes32 _uid
     ) external onlyCrossDomainCallback {
         if (isSourceChain) {
             revert NotAllowedOnSourceChain();
         } else {
             // On other chains, store locally
-            if (_isAttest) {
-                _localAttest(_recipient, _fid);
+            if (_uid != bytes32(0)) {
+                _localAttest(_recipient, _fid, _uid);
             } else {
                 _localRevoke(_recipient, _fid);
             }
@@ -235,14 +243,15 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
      */
     function _localAttest(
         address _recipient,
-        uint256 _fid
+        uint256 _fid,
+        bytes32 _uid
     ) internal returns (bytes32) {
         bytes32 key = computeKey(_fid, _recipient);
 
         // Store
         localWalletAttestations[_recipient].set(uint256(key), _fid);
         localFidAttestations[_fid].set(uint256(key), _recipient);
-        _isVerified[key] = true;
+        _isVerified[key] = _uid;
 
         emit VerificationAttested(_fid, _recipient, 0, bytes32(0), "");
         return key;
@@ -263,7 +272,7 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
         // Remove from local store
         localWalletAttestations[_recipient].remove(uint256(key));
         localFidAttestations[_fid].remove(uint256(key));
-        _isVerified[key] = false;
+        _isVerified[key] = bytes32(0);
 
         emit VerificationRevoked(_fid, _recipient, 0, bytes32(0), "");
         return true;
@@ -301,8 +310,7 @@ contract FarcasterResolverInterop is IFarcasterResolver, Multicall {
             return sourceResolver.getAttestationUid(fid, wallet);
         } else {
             bytes32 key = computeKey(fid, wallet);
-            if (!_isVerified[key]) return bytes32(0);
-            return key;
+            return _isVerified[key];
         }
     }
 

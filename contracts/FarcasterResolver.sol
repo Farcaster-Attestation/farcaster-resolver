@@ -58,10 +58,10 @@ contract FarcasterResolver is
         address recipient,
         uint256 fid,
         bytes32 publicKey,
-        uint256 verificationMethod,
         bytes memory signature
     ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(recipient, fid, publicKey, verificationMethod, signature));
+        return
+            keccak256(abi.encodePacked(recipient, fid, publicKey, signature));
     }
 
     /**
@@ -79,11 +79,13 @@ contract FarcasterResolver is
         uint256 verificationMethod,
         bytes memory signature
     ) public returns (bytes32) {
-        bytes32 h = signatureHash(recipient, fid, publicKey, verificationMethod, signature);
+        bytes32 h = signatureHash(recipient, fid, publicKey, signature);
 
         if (signatureHashUsed[h]) {
             revert SignatureAlreadyUsed();
         }
+
+        signatureHashUsed[h] = true;
 
         return
             _eas.attest(
@@ -114,14 +116,14 @@ contract FarcasterResolver is
         bytes memory signature
     ) public returns (bool) {
         bytes32 key = computeKey(fid, recipient);
-        bytes32 h = signatureHash(recipient, fid, publicKey, verificationMethod, signature);
-
-        if (uid[key] == bytes32(0)) {
-            return false;
-        }
+        bytes32 h = signatureHash(recipient, fid, publicKey, signature);
 
         if (signatureHashUsed[h]) {
             revert SignatureAlreadyUsed();
+        }
+
+        if (uid[key] == bytes32(0)) {
+            return false;
         }
 
         signatureHashUsed[h] = true;
@@ -199,7 +201,13 @@ contract FarcasterResolver is
             return false;
         }
 
-        uint256 timestamp = verifyAdd(fid, recipient, publicKey, verificationMethod, signature);
+        uint256 timestamp = verifyAdd(
+            fid,
+            recipient,
+            publicKey,
+            verificationMethod,
+            signature
+        );
 
         if (timestamp == 0 || timestamp <= latestMessageTimestamp[key]) {
             return false;

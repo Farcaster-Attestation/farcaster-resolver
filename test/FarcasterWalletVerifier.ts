@@ -654,6 +654,58 @@ describe("FarcasterWalletVerifier", function () {
           [],
         ]);
       }
+
+      // Must not able to attest again
+      {
+        const message = addMessage;
+        const messageBytes = addMessageBytes;
+
+        const fid = BigInt(message.data.fid);
+
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(message.signature.subarray(32)),
+            toHexString(messageBytes),
+          ]
+        );
+
+        await expect(
+          resolver.write.attest([
+            toHexString(message.data.verificationAddAddressBody.address),
+            fid,
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ])
+        ).to.be.rejectedWith("SignatureAlreadyUsed()");
+      }
+
+      // Must not able to revoke again
+      {
+        const message = removeMessage;
+        const messageBytes = removeMessageBytes;
+
+        const encodedData = encodeAbiParameters(
+          parseAbiParameters("bytes32 r, bytes32 s, bytes message"),
+          [
+            toHexString(message.signature.subarray(0, 32)),
+            toHexString(message.signature.subarray(32)),
+            toHexString(messageBytes),
+          ]
+        );
+
+        await expect(
+          resolver.write.revoke([
+            toHexString(message.data.verificationRemoveBody.address),
+            fid,
+            toHexString(message.signer),
+            1n,
+            encodedData,
+          ])
+        ).to.be.rejectedWith("SignatureAlreadyUsed()");
+      }
     });
   });
 
@@ -774,31 +826,40 @@ describe("FarcasterWalletVerifier", function () {
       ]);
 
       await expect(
-        walletOptimisticVerifier.write.challengeAdd([
-          BigInt(message.data.fid),
-          toHexString(message.data.verificationAddAddressBody.address),
-          toHexString(message.signer),
-          encodedData
-        ], {gas: BigInt(1_000_000)})
-      ).to.be.rejectedWith("InsufficientGas()")
+        walletOptimisticVerifier.write.challengeAdd(
+          [
+            BigInt(message.data.fid),
+            toHexString(message.data.verificationAddAddressBody.address),
+            toHexString(message.signer),
+            encodedData,
+          ],
+          { gas: BigInt(1_000_000) }
+        )
+      ).to.be.rejectedWith("InsufficientGas()");
 
       await expect(
-        walletOptimisticVerifier.write.challengeAdd([
-          BigInt(message.data.fid),
-          toHexString(message.data.verificationAddAddressBody.address),
-          toHexString(message.signer),
-          encodedData
-        ], {gas: BigInt(3_800_000)})
-      ).to.be.rejectedWith("InsufficientGas()")
+        walletOptimisticVerifier.write.challengeAdd(
+          [
+            BigInt(message.data.fid),
+            toHexString(message.data.verificationAddAddressBody.address),
+            toHexString(message.signer),
+            encodedData,
+          ],
+          { gas: BigInt(3_800_000) }
+        )
+      ).to.be.rejectedWith("InsufficientGas()");
 
       await expect(
-        walletOptimisticVerifier.write.challengeAdd([
-          BigInt(message.data.fid),
-          toHexString(message.data.verificationAddAddressBody.address),
-          toHexString(message.signer),
-          encodedData,
-        ], {gas: BigInt(4_000_000)})
-      ).to.be.rejectedWith("ChallengeFailed()")
+        walletOptimisticVerifier.write.challengeAdd(
+          [
+            BigInt(message.data.fid),
+            toHexString(message.data.verificationAddAddressBody.address),
+            toHexString(message.signer),
+            encodedData,
+          ],
+          { gas: BigInt(4_000_000) }
+        )
+      ).to.be.rejectedWith("ChallengeFailed()");
 
       const challenged = await walletOptimisticVerifier.read.tryChallengeAdd([
         BigInt(message.data.fid),

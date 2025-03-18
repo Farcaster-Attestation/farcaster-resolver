@@ -1460,4 +1460,35 @@ describe("StandardConsumer", function () {
       )
     ).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
   });
+
+  it("Should support decoder interfaces", async function () {
+    const { eas, resolver, membership } = await loadFixture(
+      deploySimpleFixture
+    );
+
+    const standardConsumer = await hre.viem.deployContract(
+      "FarcasterResolverStandardConsumer",
+      [
+        eas.address,
+        resolver.address,
+        membership.address,
+        false,
+        false,
+        true,
+        false,
+        32n,
+        0n,
+      ]
+    );
+
+    // Check if the consumer supports the required interfaces
+    expect(await standardConsumer.read.supportsInterface(["0xbe3efb08"])).to.be
+      .true;
+    expect(await standardConsumer.read.supportsInterface(["0xfafec1c7"])).to.be
+      .true;
+    expect(await standardConsumer.read.supportsInterface(["0x01ffc9a7"])).to.be
+      .true;
+    expect(await standardConsumer.read.supportsInterface(["0x96e8ee7c"])).to.be
+      .true;
+  });
 });
