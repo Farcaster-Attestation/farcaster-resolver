@@ -233,32 +233,6 @@ describe("SimpleConsumer", function () {
 });
 
 describe("StandardConsumer", function () {
-  it("Support decoder interfaces", async function () {
-    const { eas, resolver, membership } = await loadFixture(
-      deploySimpleFixture
-    );
-
-    const standardConsumer = await hre.viem.deployContract(
-      "FarcasterResolverStandardConsumer",
-      [
-        eas.address,
-        resolver.address,
-        membership.address,
-        false,
-        false,
-        false,
-        false,
-        32n,
-        0n,
-      ]
-    );
-
-    expect(await standardConsumer.read.supportsInterface(["0xbe3efb08"])).to.be
-      .true;
-    expect(await standardConsumer.read.supportsInterface(["0xfafec1c7"])).to.be
-      .true;
-  });
-
   it("No Ref", async function () {
     const { eas, resolver, membership, schemaRegistry, alices } =
       await loadFixture(deploySimpleFixture);
@@ -275,6 +249,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -365,6 +340,113 @@ describe("StandardConsumer", function () {
     );
   });
 
+  it("Attester address enforcement", async function () {
+    const { eas, resolver, membership, schemaRegistry, alices } =
+      await loadFixture(deploySimpleFixture);
+
+    const standardConsumer = await hre.viem.deployContract(
+      "FarcasterResolverStandardConsumer",
+      [
+        eas.address,
+        resolver.address,
+        membership.address,
+        true,
+        false,
+        false,
+        false,
+        32n,
+        0n,
+        alices[3].address,
+      ]
+    );
+
+    const schemaId = await deployStandardSchema(
+      schemaRegistry,
+      standardConsumer.address
+    );
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 dummy,uint256 fid,bytes32 refUID"),
+      [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        1n,
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      ]
+    );
+
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: alices[0].address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith("InvalidAttester");
+
+    const uid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: alices[0].address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[3],
+        }
+      )
+    );
+
+    await expect(
+      eas.write.revoke(
+        [
+          {
+            schema: schemaId,
+            data: {
+              uid,
+              value: 0n,
+            },
+          },
+        ],
+        { account: alices[0] }
+      )
+    ).to.be.rejected;
+
+    await eas.write.revoke(
+      [
+        {
+          schema: schemaId,
+          data: {
+            uid,
+            value: 0n,
+          },
+        },
+      ],
+      { account: alices[3] }
+    );
+  });
+
   it("No Ref + Recipient", async function () {
     const { eas, resolver, membership, schemaRegistry, alices } =
       await loadFixture(deploySimpleFixture);
@@ -381,6 +463,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -514,6 +597,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -692,6 +776,7 @@ describe("StandardConsumer", function () {
         true,
         32n,
         64n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -906,6 +991,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -1093,6 +1179,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -1295,6 +1382,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -1397,6 +1485,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -1478,6 +1567,7 @@ describe("StandardConsumer", function () {
         false,
         32n,
         0n,
+        "0x0000000000000000000000000000000000000000",
       ]
     );
 
@@ -1487,8 +1577,6 @@ describe("StandardConsumer", function () {
     expect(await standardConsumer.read.supportsInterface(["0xfafec1c7"])).to.be
       .true;
     expect(await standardConsumer.read.supportsInterface(["0x01ffc9a7"])).to.be
-      .true;
-    expect(await standardConsumer.read.supportsInterface(["0x96e8ee7c"])).to.be
       .true;
   });
 });

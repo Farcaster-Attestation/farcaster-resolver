@@ -36,6 +36,9 @@ contract FarcasterResolverStandardConsumer is
     /// @notice Offset of reference UID in attestation data
     uint256 immutable refOffset;
 
+    /// @notice Required attester address
+    address immutable requiredAttester;
+
     /// @notice Error thrown when caller lacks required permissions
     error PermissionDenied();
 
@@ -51,6 +54,9 @@ contract FarcasterResolverStandardConsumer is
     /// @notice Error thrown when attestation is expired
     error AttestationExpired(bytes32 uid);
 
+    /// @notice Error thrown when attestation is from invalid required attester
+    error InvalidAttester(bytes32 uid);
+
     /**
      * @notice Constructs the standard consumer contract
      * @param _eas The Ethereum Attestation Service contract
@@ -62,6 +68,7 @@ contract FarcasterResolverStandardConsumer is
      * @param _useRefBody Whether to use reference UID from attestation body
      * @param _fidOffset Offset of FID in attestation data
      * @param _refOffset Offset of reference UID in attestation data
+     * @param _requiredAttester The required attester address
      */
     constructor(
         IEAS _eas,
@@ -72,7 +79,8 @@ contract FarcasterResolverStandardConsumer is
         bool _useRefCheck,
         bool _useRefBody,
         uint256 _fidOffset,
-        uint256 _refOffset
+        uint256 _refOffset,
+        address _requiredAttester
     ) FarcasterResolverConsumer(_eas, _resolver) {
         membership = _membership;
         useRecipient = _useRecipient;
@@ -81,6 +89,7 @@ contract FarcasterResolverStandardConsumer is
         useRefBody = _useRefBody;
         fidOffset = _fidOffset;
         refOffset = _refOffset;
+        requiredAttester = _requiredAttester;
     }
 
     /**
@@ -124,14 +133,18 @@ contract FarcasterResolverStandardConsumer is
 
         if (attestation.revocationTime > 0)
             revert AttestationRevoked(attestation.uid);
-        if (attestation.expirationTime != 0 && attestation.expirationTime < block.timestamp)
-            revert AttestationExpired(attestation.uid);
+        if (
+            attestation.expirationTime != 0 &&
+            attestation.expirationTime < block.timestamp
+        ) revert AttestationExpired(attestation.uid);
 
         bool supportsDecoderInterface = false;
         if (address(schema.resolver) != address(0)) {
-            try IERC165(address(schema.resolver)).supportsInterface(
-                type(IFarcasterResolverAttestationDecoder).interfaceId
-            ) returns (bool s) {
+            try
+                IERC165(address(schema.resolver)).supportsInterface(
+                    type(IFarcasterResolverAttestationDecoder).interfaceId
+                )
+            returns (bool s) {
                 supportsDecoderInterface = s;
             } catch {
                 // If the call fails, assume it doesn't support the interface
@@ -141,16 +154,19 @@ contract FarcasterResolverStandardConsumer is
 
         if (!supportsDecoderInterface) {
             bytes32 refUid;
-            
+
             // Check if resolver supports IFarcasterResolverRefDecoder
             if (address(schema.resolver) != address(0)) {
-                try IERC165(address(schema.resolver)).supportsInterface(
-                    type(IFarcasterResolverRefDecoder).interfaceId
-                ) returns (bool s) {
+                try
+                    IERC165(address(schema.resolver)).supportsInterface(
+                        type(IFarcasterResolverRefDecoder).interfaceId
+                    )
+                returns (bool s) {
                     if (s) {
                         // Use decodeRefUid if resolver supports it
-                        refUid = IFarcasterResolverRefDecoder(address(schema.resolver))
-                            .decodeRefUid(attestation, value, isRevoke);
+                        refUid = IFarcasterResolverRefDecoder(
+                            address(schema.resolver)
+                        ).decodeRefUid(attestation, value, isRevoke);
                     } else {
                         refUid = attestation.refUID;
                     }
@@ -161,7 +177,7 @@ contract FarcasterResolverStandardConsumer is
             } else {
                 refUid = attestation.refUID;
             }
-            
+
             if (refUid == bytes32(0)) {
                 revert MissingFarcasterResolverConsumer(attestation.uid);
             } else {
@@ -237,6 +253,13 @@ contract FarcasterResolverStandardConsumer is
         override
         returns (bool valid, uint256 fid, address wallet)
     {
+        if (
+            requiredAttester != address(0) &&
+            attestation.attester != requiredAttester
+        ) {
+            revert InvalidAttester(attestation.uid);
+        }
+
         // Check for farcaster ID <-> wallet verification
         (valid, fid, wallet) = super.isValidAttestation(
             attestation,

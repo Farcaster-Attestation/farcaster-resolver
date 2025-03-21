@@ -18,7 +18,10 @@ import {
   parseAbiParameters,
   PrivateKeyAccount,
 } from "viem";
-import { time, mine } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
+import {
+  time,
+  mine,
+} from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { privateKeyToAccount } from "viem/accounts";
 import FarcasterResolverModule from "../ignition/modules/FarcasterResolver";
 import TestSuiteModule from "../ignition/modules/TestSuite";
@@ -128,9 +131,13 @@ export async function signVerificationRemoveAddress(
 }
 
 export async function deployResolverWithAttestations() {
-  const currentTimestamp = Math.floor(Date.now() / 1000);
-  await time.setNextBlockTimestamp(currentTimestamp);
-  await mine();
+  const timestamp = await time.latest();
+
+  if (timestamp < 1742000000) {
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    await time.setNextBlockTimestamp(currentTimestamp);
+    await mine();
+  }
 
   const result = await ignition.deploy(TestSuiteModule);
 
@@ -180,7 +187,7 @@ export async function deployResolverWithAttestations() {
   for (let i = 0; i < 4; i++) {
     await deployer.sendTransaction({
       to: alices[i].address,
-      value: 10000000000000000n // 0.1 ETH
+      value: 10000000000000000n, // 0.1 ETH
     });
   }
 
@@ -196,8 +203,12 @@ export async function deployResolverWithAttestations() {
 
 export async function getAttestationUid(hash: `0x${string}`) {
   const publicClient = await hre.viem.getPublicClient();
-  const receipt = await publicClient.waitForTransactionReceipt({ hash })
-  const uid = receipt.logs.find(log => log.topics[0] == '0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35')!.data
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  const uid = receipt.logs.find(
+    (log) =>
+      log.topics[0] ==
+      "0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35"
+  )!.data;
   return uid;
 }
 

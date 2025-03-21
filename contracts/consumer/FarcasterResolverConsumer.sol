@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IEAS, Attestation} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
-import {SchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
+import {SchemaResolver, ISchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import {IFarcasterVerification} from "../IFarcasterResolver.sol";
 import {IFarcasterResolverAttestationDecoder} from "./IFarcasterResolverAttestationDecoder.sol";
 
@@ -117,6 +117,6 @@ abstract contract FarcasterResolverConsumer is
             interfaceId ==
             type(IFarcasterResolverAttestationDecoder).interfaceId ||
             interfaceId == type(IERC165).interfaceId ||
-            interfaceId == type(SchemaResolver).interfaceId;
+            interfaceId == type(ISchemaResolver).interfaceId;
     }
 }

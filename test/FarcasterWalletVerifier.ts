@@ -102,9 +102,13 @@ describe("FarcasterWalletVerifier", function () {
   let ed25519Signer: NobleEd25519Signer;
 
   before(async function () {
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    await time.setNextBlockTimestamp(currentTimestamp);
-    await mine();
+    const timestamp = await time.latest();
+
+    if (timestamp < 1742000000) {
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      await time.setNextBlockTimestamp(currentTimestamp);
+      await mine();
+    }
 
     const {
       fid: fid_,
