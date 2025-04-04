@@ -1,0 +1,585 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "FarcasterResolverSimpleConsumer",
+  "sourceName": "contracts/consumer/simple/FarcasterResolverSimpleConsumer.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IEAS",
+          "name": "eas",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IFarcasterVerification",
+          "name": "_resolver",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "AccessDenied",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientValue",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidEAS",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidLength",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotPayable",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "uid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "schema",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "time",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "expirationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "revocationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "refUID",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "attester",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "revocable",
+              "type": "bool"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Attestation",
+          "name": "attestation",
+          "type": "tuple"
+        }
+      ],
+      "name": "attest",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "uid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "schema",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "time",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "expirationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "revocationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "refUID",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "attester",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "revocable",
+              "type": "bool"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Attestation",
+          "name": "attestation",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isRevoke",
+          "type": "bool"
+        }
+      ],
+      "name": "decodeFarcasterAttestation",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "fid",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "wallet",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isPayable",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "uid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "schema",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "time",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "expirationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "revocationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "refUID",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "attester",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "revocable",
+              "type": "bool"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Attestation",
+          "name": "attestation",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "isRevoke",
+          "type": "bool"
+        }
+      ],
+      "name": "isValidAttestation",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "valid",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fid",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "wallet",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "uid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "schema",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "time",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "expirationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "revocationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "refUID",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "attester",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "revocable",
+              "type": "bool"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Attestation[]",
+          "name": "attestations",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "values",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "multiAttest",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "uid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "schema",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "time",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "expirationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "revocationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "refUID",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "attester",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "revocable",
+              "type": "bool"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Attestation[]",
+          "name": "attestations",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "values",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "multiRevoke",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "resolver",
+      "outputs": [
+        {
+          "internalType": "contract IFarcasterVerification",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "uid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "schema",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "time",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "expirationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint64",
+              "name": "revocationTime",
+              "type": "uint64"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "refUID",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address",
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "attester",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "revocable",
+              "type": "bool"
+            },
+            {
+              "internalType": "bytes",
+              "name": "data",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct Attestation",
+          "name": "attestation",
+          "type": "tuple"
+        }
+      ],
+      "name": "revoke",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "bytecode": "0x61012060405234801561001157600080fd5b50604051610f9a380380610f9a8339810160408190526100309161009d565b6001608052600360a052600060c0528181816001600160a01b038116610069576040516341bc07ff60e11b815260040160405180910390fd5b6001600160a01b0390811660e0521661010052506100d7915050565b6001600160a01b038116811461009a57600080fd5b50565b600080604083850312156100b057600080fd5b82516100bb81610085565b60208401519092506100cc81610085565b809150509250929050565b60805160a05160c05160e05161010051610e786101226000396000818161013801526106ce0152600061087e015260006103dc015260006103b30152600061038a0152610e786000f3fe6080604052600436106100b55760003560e01c8063b91e2f7e11610069578063e49617e11161004e578063e49617e11461022e578063e60c350514610241578063fafec1c71461025457600080fd5b8063b91e2f7e146101c7578063ce46e0461461021a57600080fd5b806354fd4d501161009a57806354fd4d501461017f57806388e5b2d9146101a157806391db0b7e146101b457600080fd5b806301ffc9a7146100f157806304f3bcec1461012657600080fd5b366100ec576040517f1574f9f300000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b600080fd5b3480156100fd57600080fd5b5061011161010c3660046109df565b61029e565b60405190151581526020015b60405180910390f35b34801561013257600080fd5b5061015a7f000000000000000000000000000000000000000000000000000000000000000081565b60405173ffffffffffffffffffffffffffffffffffffffff909116815260200161011d565b34801561018b57600080fd5b50610194610383565b60405161011d9190610a4c565b6101116101af366004610ae9565b610426565b6101116101c2366004610ae9565b610527565b3480156101d357600080fd5b506101e76101e2366004610b84565b610618565b604080519315158452602084019290925273ffffffffffffffffffffffffffffffffffffffff169082015260600161011d565b34801561022657600080fd5b506000610111565b61011161023c366004610bdf565b610745565b61011161024f366004610bdf565b610759565b34801561026057600080fd5b5061027461026f366004610b84565b61076d565b6040805192835273ffffffffffffffffffffffffffffffffffffffff90911660208301520161011d565b60007fffffffff0000000000000000000000000000000000000000000000000000000082167ffafec1c700000000000000000000000000000000000000000000000000000000148061033157507fffffffff0000000000000000000000000000000000000000000000000000000082167f01ffc9a700000000000000000000000000000000000000000000000000000000145b8061037d57507fffffffff0000000000000000000000000000000000000000000000000000000082167fd5e27b0500000000000000000000000000000000000000000000000000000000145b92915050565b60606103ae7f00000000000000000000000000000000000000000000000000000000000000006107a8565b6103d77f00000000000000000000000000000000000000000000000000000000000000006107a8565b6104007f00000000000000000000000000000000000000000000000000000000000000006107a8565b60405160200161041293929190610c14565b604051602081830303815290604052905090565b6000610430610866565b8382811461046a576040517f947d5a8400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b3460005b8281101561051757600086868381811061048a5761048a610cab565b905060200201359050828111156104cd576040517f1101129400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6104fa8989848181106104e2576104e2610cab565b90506020028101906104f49190610cda565b826108d7565b61050b57600094505050505061051f565b9091039060010161046e565b506001925050505b949350505050565b6000610531610866565b8382811461056b576040517f947d5a8400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b3460005b8281101561051757600086868381811061058b5761058b610cab565b905060200201359050828111156105ce576040517f1101129400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6105fb8989848181106105e3576105e3610cab565b90506020028101906105f59190610cda565b826108ef565b61060c57600094505050505061051f565b9091039060010161056f565b600080600061062886868661076d565b9092509050831561063c576001925061073c565b61064c6080870160608801610d18565b67ffffffffffffffff16158061067b57504261066e6080880160608901610d18565b67ffffffffffffffff1610155b801561073957506040517f5659c8380000000000000000000000000000000000000000000000000000000081526004810183905273ffffffffffffffffffffffffffffffffffffffff82811660248301527f00000000000000000000000000000000000000000000000000000000000000001690635659c83890604401602060405180830381865afa158015610715573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107399190610d42565b92505b93509350939050565b600061074f610866565b61037d82346108d7565b6000610763610866565b61037d82346108ef565b60008061077e610120860186610d5f565b81019061078b9190610dc4565b915061079e610100860160e08701610ddd565b9050935093915050565b606060006107b5836108fd565b600101905060008167ffffffffffffffff8111156107d5576107d5610e13565b6040519080825280601f01601f1916602001820160405280156107ff576020820181803683370190505b5090508181016020015b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff017f3031323334353637383961626364656600000000000000000000000000000000600a86061a8153600a850494508461080957509392505050565b3373ffffffffffffffffffffffffffffffffffffffff7f000000000000000000000000000000000000000000000000000000000000000016146108d5576040517f4ca8886700000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b565b60006108e583836001610618565b5090949350505050565b60006108e583836000610618565b6000807a184f03e93ff9f4daa797ed6e38ed64bf6a1f0100000000000000008310610946577a184f03e93ff9f4daa797ed6e38ed64bf6a1f010000000000000000830492506040015b6d04ee2d6d415b85acef81000000008310610972576d04ee2d6d415b85acef8100000000830492506020015b662386f26fc10000831061099057662386f26fc10000830492506010015b6305f5e10083106109a8576305f5e100830492506008015b61271083106109bc57612710830492506004015b606483106109ce576064830492506002015b600a831061037d5760010192915050565b6000602082840312156109f157600080fd5b81357fffffffff0000000000000000000000000000000000000000000000000000000081168114610a2157600080fd5b9392505050565b60005b83811015610a43578181015183820152602001610a2b565b50506000910152565b6020815260008251806020840152610a6b816040850160208701610a28565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169190910160400192915050565b60008083601f840112610aaf57600080fd5b50813567ffffffffffffffff811115610ac757600080fd5b6020830191508360208260051b8501011115610ae257600080fd5b9250929050565b60008060008060408587031215610aff57600080fd5b843567ffffffffffffffff811115610b1657600080fd5b610b2287828801610a9d565b909550935050602085013567ffffffffffffffff811115610b4257600080fd5b610b4e87828801610a9d565b95989497509550505050565b60006101408284031215610b6d57600080fd5b50919050565b8015158114610b8157600080fd5b50565b600080600060608486031215610b9957600080fd5b833567ffffffffffffffff811115610bb057600080fd5b610bbc86828701610b5a565b935050602084013591506040840135610bd481610b73565b809150509250925092565b600060208284031215610bf157600080fd5b813567ffffffffffffffff811115610c0857600080fd5b61051f84828501610b5a565b60008451610c26818460208901610a28565b7f2e000000000000000000000000000000000000000000000000000000000000009083019081528451610c60816001840160208901610a28565b7f2e00000000000000000000000000000000000000000000000000000000000000600192909101918201528351610c9e816002840160208801610a28565b0160020195945050505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b600082357ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec1833603018112610d0e57600080fd5b9190910192915050565b600060208284031215610d2a57600080fd5b813567ffffffffffffffff81168114610a2157600080fd5b600060208284031215610d5457600080fd5b8151610a2181610b73565b60008083357fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1843603018112610d9457600080fd5b83018035915067ffffffffffffffff821115610daf57600080fd5b602001915036819003821315610ae257600080fd5b600060208284031215610dd657600080fd5b5035919050565b600060208284031215610def57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff81168114610a2157600080fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fdfea264697066735822122052a5c8eda849c1f4b34387b62e0407c84df97edfefa6ec57dbcd7dfe876badf364736f6c634300081a0033",
+  "deployedBytecode": "0x6080604052600436106100b55760003560e01c8063b91e2f7e11610069578063e49617e11161004e578063e49617e11461022e578063e60c350514610241578063fafec1c71461025457600080fd5b8063b91e2f7e146101c7578063ce46e0461461021a57600080fd5b806354fd4d501161009a57806354fd4d501461017f57806388e5b2d9146101a157806391db0b7e146101b457600080fd5b806301ffc9a7146100f157806304f3bcec1461012657600080fd5b366100ec576040517f1574f9f300000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b600080fd5b3480156100fd57600080fd5b5061011161010c3660046109df565b61029e565b60405190151581526020015b60405180910390f35b34801561013257600080fd5b5061015a7f000000000000000000000000000000000000000000000000000000000000000081565b60405173ffffffffffffffffffffffffffffffffffffffff909116815260200161011d565b34801561018b57600080fd5b50610194610383565b60405161011d9190610a4c565b6101116101af366004610ae9565b610426565b6101116101c2366004610ae9565b610527565b3480156101d357600080fd5b506101e76101e2366004610b84565b610618565b604080519315158452602084019290925273ffffffffffffffffffffffffffffffffffffffff169082015260600161011d565b34801561022657600080fd5b506000610111565b61011161023c366004610bdf565b610745565b61011161024f366004610bdf565b610759565b34801561026057600080fd5b5061027461026f366004610b84565b61076d565b6040805192835273ffffffffffffffffffffffffffffffffffffffff90911660208301520161011d565b60007fffffffff0000000000000000000000000000000000000000000000000000000082167ffafec1c700000000000000000000000000000000000000000000000000000000148061033157507fffffffff0000000000000000000000000000000000000000000000000000000082167f01ffc9a700000000000000000000000000000000000000000000000000000000145b8061037d57507fffffffff0000000000000000000000000000000000000000000000000000000082167fd5e27b0500000000000000000000000000000000000000000000000000000000145b92915050565b60606103ae7f00000000000000000000000000000000000000000000000000000000000000006107a8565b6103d77f00000000000000000000000000000000000000000000000000000000000000006107a8565b6104007f00000000000000000000000000000000000000000000000000000000000000006107a8565b60405160200161041293929190610c14565b604051602081830303815290604052905090565b6000610430610866565b8382811461046a576040517f947d5a8400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b3460005b8281101561051757600086868381811061048a5761048a610cab565b905060200201359050828111156104cd576040517f1101129400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6104fa8989848181106104e2576104e2610cab565b90506020028101906104f49190610cda565b826108d7565b61050b57600094505050505061051f565b9091039060010161046e565b506001925050505b949350505050565b6000610531610866565b8382811461056b576040517f947d5a8400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b3460005b8281101561051757600086868381811061058b5761058b610cab565b905060200201359050828111156105ce576040517f1101129400000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6105fb8989848181106105e3576105e3610cab565b90506020028101906105f59190610cda565b826108ef565b61060c57600094505050505061051f565b9091039060010161056f565b600080600061062886868661076d565b9092509050831561063c576001925061073c565b61064c6080870160608801610d18565b67ffffffffffffffff16158061067b57504261066e6080880160608901610d18565b67ffffffffffffffff1610155b801561073957506040517f5659c8380000000000000000000000000000000000000000000000000000000081526004810183905273ffffffffffffffffffffffffffffffffffffffff82811660248301527f00000000000000000000000000000000000000000000000000000000000000001690635659c83890604401602060405180830381865afa158015610715573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107399190610d42565b92505b93509350939050565b600061074f610866565b61037d82346108d7565b6000610763610866565b61037d82346108ef565b60008061077e610120860186610d5f565b81019061078b9190610dc4565b915061079e610100860160e08701610ddd565b9050935093915050565b606060006107b5836108fd565b600101905060008167ffffffffffffffff8111156107d5576107d5610e13565b6040519080825280601f01601f1916602001820160405280156107ff576020820181803683370190505b5090508181016020015b7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff017f3031323334353637383961626364656600000000000000000000000000000000600a86061a8153600a850494508461080957509392505050565b3373ffffffffffffffffffffffffffffffffffffffff7f000000000000000000000000000000000000000000000000000000000000000016146108d5576040517f4ca8886700000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b565b60006108e583836001610618565b5090949350505050565b60006108e583836000610618565b6000807a184f03e93ff9f4daa797ed6e38ed64bf6a1f0100000000000000008310610946577a184f03e93ff9f4daa797ed6e38ed64bf6a1f010000000000000000830492506040015b6d04ee2d6d415b85acef81000000008310610972576d04ee2d6d415b85acef8100000000830492506020015b662386f26fc10000831061099057662386f26fc10000830492506010015b6305f5e10083106109a8576305f5e100830492506008015b61271083106109bc57612710830492506004015b606483106109ce576064830492506002015b600a831061037d5760010192915050565b6000602082840312156109f157600080fd5b81357fffffffff0000000000000000000000000000000000000000000000000000000081168114610a2157600080fd5b9392505050565b60005b83811015610a43578181015183820152602001610a2b565b50506000910152565b6020815260008251806020840152610a6b816040850160208701610a28565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0169190910160400192915050565b60008083601f840112610aaf57600080fd5b50813567ffffffffffffffff811115610ac757600080fd5b6020830191508360208260051b8501011115610ae257600080fd5b9250929050565b60008060008060408587031215610aff57600080fd5b843567ffffffffffffffff811115610b1657600080fd5b610b2287828801610a9d565b909550935050602085013567ffffffffffffffff811115610b4257600080fd5b610b4e87828801610a9d565b95989497509550505050565b60006101408284031215610b6d57600080fd5b50919050565b8015158114610b8157600080fd5b50565b600080600060608486031215610b9957600080fd5b833567ffffffffffffffff811115610bb057600080fd5b610bbc86828701610b5a565b935050602084013591506040840135610bd481610b73565b809150509250925092565b600060208284031215610bf157600080fd5b813567ffffffffffffffff811115610c0857600080fd5b61051f84828501610b5a565b60008451610c26818460208901610a28565b7f2e000000000000000000000000000000000000000000000000000000000000009083019081528451610c60816001840160208901610a28565b7f2e00000000000000000000000000000000000000000000000000000000000000600192909101918201528351610c9e816002840160208801610a28565b0160020195945050505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b600082357ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec1833603018112610d0e57600080fd5b9190910192915050565b600060208284031215610d2a57600080fd5b813567ffffffffffffffff81168114610a2157600080fd5b600060208284031215610d5457600080fd5b8151610a2181610b73565b60008083357fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1843603018112610d9457600080fd5b83018035915067ffffffffffffffff821115610daf57600080fd5b602001915036819003821315610ae257600080fd5b600060208284031215610dd657600080fd5b5035919050565b600060208284031215610def57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff81168114610a2157600080fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fdfea264697066735822122052a5c8eda849c1f4b34387b62e0407c84df97edfefa6ec57dbcd7dfe876badf364736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

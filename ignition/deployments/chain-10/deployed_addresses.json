@@ -1,0 +1,18 @@
+{
+  "FarcasterResolverModule#EAS": "0x4200000000000000000000000000000000000021",
+  "FarcasterResolverModule#SchemaRegistry": "0x4200000000000000000000000000000000000020",
+  "FarcasterResolverModule#Blake3": "0xe9875D3A0D0dC78222aE01b2252d03F03CC3D018",
+  "FarcasterResolverModule#Ed25519_pow": "0x2782355596D62F991544E58F02cDb4237018eBC7",
+  "FarcasterResolverModule#FarcasterPublicKeyVerifier": "0x20725BEf386c289110a54C8586D146EBb5Ed8C0b",
+  "FarcasterResolverModule#FcVerificationDecoder": "0x3e189132eE05415fB1068d3086D4c1C3Cb37de37",
+  "FarcasterResolverModule#Sha512": "0x57bb00a1E7f9D03bcc042fAF82CCA248ec6F0f3f",
+  "FarcasterResolverModule#Ed25519": "0x53A1E44420Fd09D089dd38f0dffEeEfB62Fd6826",
+  "FarcasterResolverModule#FarcasterResolver": "0xF99C4e843033831c570946a97F6195e47051C443",
+  "FarcasterResolverModule#FcMessageVerification": "0x80b87f98840fE76bEb44b97bc5FE00457eaAEdb0",
+  "FarcasterResolverModule#FarcasterWalletOnchainVerifier": "0xDcC7372912D743C52fD83bc7aB7810c40f449D3f",
+  "FarcasterResolverModule#FarcasterWalletOptimisticVerifier": "0x0F12f716DFf14195875a2Da46d843770D32256d9",
+  "FarcasterResolverExtendedModule#EAS": "0x4200000000000000000000000000000000000021",
+  "FarcasterResolverExtendedModule#FarcasterResolverInterop": "0x98561CaF79eb6a22B23fEb6366f798d7F3898c44",
+  "FarcasterResolverExtendedModule#FarcasterMembership": "0x4FFf1356BFBC3F736c0f84412bf79358a618de3d",
+  "FarcasterResolverExtendedModule#FarcasterResolverSimpleConsumer": "0x1a7eaD65F850862dAf2C9E3d65a43E7A4ff20C28"
+}
