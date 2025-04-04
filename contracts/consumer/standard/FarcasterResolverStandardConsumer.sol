@@ -2,6 +2,7 @@
 pragma solidity ^0.8.19;
 
 import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../../IFarcasterMembership.sol";
 import "../FarcasterResolverConsumer.sol";
 import "../IFarcasterResolverRefDecoder.sol";
@@ -15,6 +16,8 @@ contract FarcasterResolverStandardConsumer is
     FarcasterResolverConsumer,
     IFarcasterResolverRefDecoder
 {
+    using ERC165Checker for address;
+
     /// @notice The Farcaster membership contract
     IFarcasterMembership public immutable membership;
 
@@ -140,16 +143,10 @@ contract FarcasterResolverStandardConsumer is
 
         bool supportsDecoderInterface = false;
         if (address(schema.resolver) != address(0)) {
-            try
-                IERC165(address(schema.resolver)).supportsInterface(
+            supportsDecoderInterface = address(schema.resolver)
+                .supportsInterface(
                     type(IFarcasterResolverAttestationDecoder).interfaceId
-                )
-            returns (bool s) {
-                supportsDecoderInterface = s;
-            } catch {
-                // If the call fails, assume it doesn't support the interface
-                supportsDecoderInterface = false;
-            }
+                );
         }
 
         if (!supportsDecoderInterface) {
@@ -157,21 +154,16 @@ contract FarcasterResolverStandardConsumer is
 
             // Check if resolver supports IFarcasterResolverRefDecoder
             if (address(schema.resolver) != address(0)) {
-                try
-                    IERC165(address(schema.resolver)).supportsInterface(
+                if (
+                    address(schema.resolver).supportsInterface(
                         type(IFarcasterResolverRefDecoder).interfaceId
                     )
-                returns (bool s) {
-                    if (s) {
-                        // Use decodeRefUid if resolver supports it
-                        refUid = IFarcasterResolverRefDecoder(
-                            address(schema.resolver)
-                        ).decodeRefUid(attestation, value, isRevoke);
-                    } else {
-                        refUid = attestation.refUID;
-                    }
-                } catch {
-                    // If the call fails, fall back to attestation.refUID
+                ) {
+                    // Use decodeRefUid if resolver supports it
+                    refUid = IFarcasterResolverRefDecoder(
+                        address(schema.resolver)
+                    ).decodeRefUid(attestation, value, isRevoke);
+                } else {
                     refUid = attestation.refUID;
                 }
             } else {

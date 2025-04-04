@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {SchemaResolver, ISchemaResolver} from "@ethereum-attestation-service/eas-contracts/contracts/resolver/SchemaResolver.sol";
 import {AttestationRequest, AttestationRequestData, RevocationRequest, RevocationRequestData} from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
 import {SchemaRecord} from "@ethereum-attestation-service/eas-contracts/contracts/ISchemaRegistry.sol";
@@ -22,7 +23,7 @@ contract FarcasterMembership is
     Multicall
 {
     using EnumerableMap for EnumerableMap.UintToUintMap;
-
+    using ERC165Checker for address;
     error PermissionDenied();
     error MissingFarcasterResolverConsumer(bytes32 uid);
     error AttestationRevoked(bytes32 uid);
@@ -140,7 +141,7 @@ contract FarcasterMembership is
         if (members[attUid].length() == 0) {
             if (
                 address(schema.resolver) == address(0) ||
-                !IERC165(address(schema.resolver)).supportsInterface(
+                !address(schema.resolver).supportsInterface(
                     type(IFarcasterResolverAttestationDecoder).interfaceId
                 )
             ) {
@@ -268,10 +269,7 @@ contract FarcasterMembership is
             attUid,
             adminFid
         );
-        (, uint256 memberPermissions) = getMember(
-            attUid,
-            memberFid
-        );
+        (, uint256 memberPermissions) = getMember(attUid, memberFid);
 
         _revokeAttestation(attUid, memberFid);
 

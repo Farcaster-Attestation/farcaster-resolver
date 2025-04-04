@@ -747,6 +747,210 @@ describe("StandardConsumer", function () {
     ).to.be.rejectedWith(`AttestationRevoked("${uid}")`);
   });
 
+  it("Expired Ref", async function () {
+    const {
+      eas,
+      resolver,
+      membership,
+      schemaRegistry,
+      alices,
+      simpleConsumer,
+    } = await loadFixture(deploySimpleFixture);
+
+    const standardConsumer = await hre.viem.deployContract(
+      "FarcasterResolverStandardConsumer",
+      [
+        eas.address,
+        resolver.address,
+        membership.address,
+        false,
+        true,
+        false,
+        false,
+        32n,
+        0n,
+        "0x0000000000000000000000000000000000000000",
+      ]
+    );
+
+    const schemaId = await deployStandardSchema(
+      schemaRegistry,
+      standardConsumer.address
+    );
+
+    const simpleSchemaId = keccak256(
+      encodePacked(
+        ["string", "address", "bool"],
+        ["uint256 fid", simpleConsumer.address, true]
+      )
+    );
+
+    const encodedData = encodeAbiParameters(parseAbiParameters("uint256 fid"), [
+      1n,
+    ]);
+
+    const currentTime = await time.latest();
+
+    const uid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: simpleSchemaId,
+            data: {
+              recipient: simpleConsumer.address,
+              expirationTime: BigInt(currentTime) + 1000n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    );
+
+    await time.increase(1000);
+
+    const encodedData2 = encodeAbiParameters(
+      parseAbiParameters("bytes32 dummy,uint256 fid,bytes32 refUID"),
+      [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        1n,
+        uid,
+      ]
+    );
+
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: BigInt(currentTime) + 2000n,
+              revocable: true,
+              refUID: uid,
+              data: encodedData2,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith(`AttestationExpired("${uid}")`);
+  });
+
+  it("No Resolver Ref", async function () {
+    const {
+      eas,
+      resolver,
+      membership,
+      schemaRegistry,
+      alices,
+      simpleConsumer,
+    } = await loadFixture(deploySimpleFixture);
+
+    const mockResolver = await hre.viem.deployContract("MockResolver", [
+      eas.address,
+    ]);
+
+    await schemaRegistry.write.register([
+      "uint256 fid",
+      mockResolver.address,
+      true,
+    ]);
+
+    const mockSchemaId = keccak256(
+      encodePacked(
+        ["string", "address", "bool"],
+        ["uint256 fid", mockResolver.address, true]
+      )
+    );
+
+    const standardConsumer = await hre.viem.deployContract(
+      "FarcasterResolverStandardConsumer",
+      [
+        eas.address,
+        resolver.address,
+        membership.address,
+        false,
+        true,
+        false,
+        false,
+        32n,
+        0n,
+        "0x0000000000000000000000000000000000000000",
+      ]
+    );
+
+    const schemaId = await deployStandardSchema(
+      schemaRegistry,
+      standardConsumer.address
+    );
+
+    const encodedData = encodeAbiParameters(parseAbiParameters("uint256 fid"), [
+      1n,
+    ]);
+
+    const uid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: mockSchemaId,
+            data: {
+              recipient: simpleConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    );
+
+    const encodedData2 = encodeAbiParameters(
+      parseAbiParameters("bytes32 dummy,uint256 fid,bytes32 refUID"),
+      [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        1n,
+        uid,
+      ]
+    );
+
+    await expect(
+      eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID: uid,
+              data: encodedData2,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    ).to.be.rejectedWith(`MissingFarcasterResolverConsumer("${uid}")`);
+  });
+
   it("Basic Ref in body", async function () {
     const {
       eas,
