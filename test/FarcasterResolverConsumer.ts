@@ -1327,6 +1327,142 @@ describe("StandardConsumer", function () {
     );
   });
 
+  it("Nested Ref in body", async function () {
+    const {
+      eas,
+      resolver,
+      membership,
+      schemaRegistry,
+      alices,
+      simpleConsumer,
+    } = await loadFixture(deploySimpleFixture);
+
+    const uid2 = await attestSimpleSchema(
+      eas,
+      simpleConsumer.address,
+      alices[0],
+      1n
+    );
+
+    const publicClient = await hre.viem.getPublicClient();
+
+    const standardConsumer = await hre.viem.deployContract(
+      "FarcasterResolverStandardConsumer",
+      [
+        eas.address,
+        resolver.address,
+        membership.address,
+        false,
+        true,
+        false,
+        true,
+        32n,
+        64n,
+        "0x0000000000000000000000000000000000000000",
+      ]
+    );
+
+    const schemaId = await deployStandardSchema(
+      schemaRegistry,
+      standardConsumer.address
+    );
+
+    const dummyEncodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 dummy,uint256 fid,bytes32 refUID"),
+      [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        1n,
+        uid2,
+      ]
+    );
+
+    const hash = await eas.write.attest(
+      [
+        {
+          schema: schemaId,
+          data: {
+            recipient: "0x0000000000000000000000000000000000000000",
+            expirationTime: 0n,
+            revocable: true,
+            value: 0n,
+            refUID:
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+            data: dummyEncodedData,
+          },
+        },
+      ],
+      {
+        account: alices[0],
+      }
+    );
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    const uid = receipt.logs.find(
+      (log) =>
+        log.topics[0] ==
+        "0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35"
+    )!.data;
+
+    const encodedData = encodeAbiParameters(
+      parseAbiParameters("bytes32 dummy,uint256 fid,bytes32 refUID"),
+      [
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        1n,
+        uid,
+      ]
+    );
+
+    const attUid = await getAttestationUid(
+      await eas.write.attest(
+        [
+          {
+            schema: schemaId,
+            data: {
+              recipient: standardConsumer.address,
+              expirationTime: 0n,
+              revocable: true,
+              refUID:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+              data: encodedData,
+              value: 0n,
+            },
+          },
+        ],
+        {
+          account: alices[0],
+        }
+      )
+    );
+
+    await expect(
+      eas.write.revoke(
+        [
+          {
+            schema: schemaId,
+            data: {
+              uid: attUid,
+              value: 0n,
+            },
+          },
+        ],
+        { account: alices[3] }
+      )
+    ).to.be.rejected;
+
+    await eas.write.revoke(
+      [
+        {
+          schema: schemaId,
+          data: {
+            uid: attUid,
+            value: 0n,
+          },
+        },
+      ],
+      { account: alices[0] }
+    );
+  });
+
   it("Basic Ref with Membership checking", async function () {
     const {
       eas,
