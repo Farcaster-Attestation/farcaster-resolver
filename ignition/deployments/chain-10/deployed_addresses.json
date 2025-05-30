@@ -13,6 +13,6 @@
   "FarcasterResolverModule#FarcasterWalletOptimisticVerifier": "0x0F12f716DFf14195875a2Da46d843770D32256d9",
   "FarcasterResolverExtendedModule#EAS": "0x4200000000000000000000000000000000000021",
   "FarcasterResolverExtendedModule#FarcasterResolverInterop": "0x98561CaF79eb6a22B23fEb6366f798d7F3898c44",
-  "FarcasterResolverExtendedModule#FarcasterMembership": "0x4FFf1356BFBC3F736c0f84412bf79358a618de3d",
+  "FarcasterResolverExtendedModule#FarcasterMembership": "0xDF91Fe3a8D3c33Af7aD78bCb73d9a8A386921620",
   "FarcasterResolverExtendedModule#FarcasterResolverSimpleConsumer": "0x1a7eaD65F850862dAf2C9E3d65a43E7A4ff20C28"
 }
